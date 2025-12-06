@@ -1,0 +1,17 @@
+{
+	"modules": [
+		{"key": "analytics", "icon": "chart", "visible": true, "order": 1},
+		{"key": "users", "icon": "users", "visible": true, "order": 2},
+		{"key": "notifications", "icon": "bell", "visible": true, "order": 3},
+		{"key": "emails", "icon": "envelope", "visible": true, "order": 4},
+		{"key": "feedbacks", "icon": "star", "visible": true, "order": 5},
+		{"key": "payments", "icon": "credit-card", "visible": true, "order": 6},
+		{"key": "calendar", "icon": "calendar", "visible": true, "order": 7},
+		{"key": "subscriptions", "icon": "tag", "visible": true, "order": 8},
+		{"key": "chats", "icon": "chat", "visible": true, "order": 9},
+		{"key": "apis", "icon": "server", "visible": true, "order": 10},
+		{"key": "monitoring", "icon": "cpu", "visible": true, "order": 11},
+		{"key": "languages", "icon": "language", "visible": true, "order": 12},
+		{"key": "settings", "icon": "settings", "visible": true, "order": 13}
+	]
+}

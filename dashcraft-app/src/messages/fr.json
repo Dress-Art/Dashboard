@@ -1,0 +1,709 @@
+{
+	"app": {
+		"title": "DashCraft",
+		"searchPlaceholder": "Rechercher...",
+		"themeToggle": "Basculer le thème",
+		"language": "Langue"
+	},
+	"nav": {
+		"analytics": "Analytique",
+		"users": "Utilisateurs",
+		"notifications": "Notifications",
+		"emails": "Emails",
+		"feedbacks": "Feedbacks",
+		"payments": "Paiements",
+		"calendar": "Calendrier",
+		"subscriptions": "Abonnements",
+		"chats": "Chats",
+		"apis": "APIs",
+		"monitoring": "Monitoring",
+		"languages": "Langues",
+		"profile": "Profil",
+		"team": "Équipe",
+		"settings": "Paramètres"
+	},
+	"widgets": {
+		"analytics": {
+			"title": "Trafic & Conversions",
+			"visitors": "Visiteurs",
+			"updatedAt": "Dernière mise à jour",
+			"refresh": "Rafraîchir",
+			"kpis": {
+				"title": "KPIs",
+				"updatedAt": "Dernière mise à jour",
+				"refresh": "Rafraîchir",
+				"signups": "Inscriptions",
+				"conversionRate": "Taux de conversion",
+				"bounceRate": "Taux de rebond",
+				"avgSession": "Durée moyenne",
+				"unitMin": "min"
+			},
+			"sources": {
+				"title": "Répartition des sources",
+				"updatedAt": "Dernière mise à jour",
+				"refresh": "Rafraîchir",
+				"total": "Total",
+				"legend": "Légende",
+				"channels": {
+					"direct": "Direct",
+					"organic": "Organique",
+					"social": "Réseaux sociaux",
+					"referral": "Référent",
+					"email": "Email",
+					"paid": "Payant"
+				}
+			}
+		},
+		"users": {
+			"title": "Liste des utilisateurs",
+			"name": "Nom",
+			"role": "Rôle",
+			"status": "Statut",
+			"actions": "Actions",
+			"edit": "Modifier",
+			"delete": "Supprimer"
+		},
+		"notifications": {
+			"title": "Flux de notifications"
+		},
+		"emails": {
+			"title": "Statistiques emails",
+			"sent": "Envoyés",
+			"opened": "Ouverts",
+			"clicked": "Cliqués"
+		},
+		"feedbacks": {
+			"title": "Feedbacks utilisateurs",
+			"rating": "Note",
+			"comment": "Commentaire"
+		},
+		"payments": {
+			"title": "Paiements",
+			"revenue": "Revenus",
+			"invoices": "Factures"
+		},
+		"calendar": {
+			"title": "Calendrier",
+			"events": "Événements"
+		},
+		"subscriptions": {
+			"title": "Abonnements",
+			"active": "Actifs",
+			"canceled": "Annulés"
+		},
+		"chats": {
+			"title": "Chats",
+			"threads": "Conversations",
+			"participants": "participants"
+		},
+		"apis": {
+			"title": "APIs externes",
+			"service": "Service",
+			"statusOk": "OK",
+			"statusDown": "En panne"
+		},
+		"monitoring": {
+			"title": "Monitoring système",
+			"cpu": "CPU",
+			"memory": "Mémoire",
+			"refresh": "Rafraîchir",
+			"unitMb": "Mo",
+			"updatedAt": "Dernière mise à jour"
+		},
+		"internalApis": {
+			"title": "APIs internes",
+			"successRate": "Taux de succès",
+			"errorRate": "Taux d’erreur",
+			"avgResponse": "Temps moyen",
+			"unitMs": "ms",
+			"requestsLast24h": "Requêtes (24h)",
+			"updatedAt": "Dernière mise à jour",
+			"refresh": "Rafraîchir",
+			"logs": "Logs récents",
+			"noLogs": "Aucun log à afficher",
+			"columns": {
+				"time": "Heure",
+				"method": "Méthode",
+				"route": "Route",
+				"status": "Statut",
+				"duration": "Durée",
+				"user": "Utilisateur"
+			},
+			"filter": {
+				"status": {
+					"label": "Statut",
+					"all": "Tous",
+					"2xx": "2xx",
+					"4xx": "4xx",
+					"5xx": "5xx"
+				},
+				"method": {
+					"label": "Méthode",
+					"ALL": "Toutes",
+					"GET": "GET",
+					"POST": "POST",
+					"PUT": "PUT",
+					"PATCH": "PATCH",
+					"DELETE": "DELETE"
+				}
+			},
+			"previous": "Précédent",
+			"next": "Suivant",
+			"page": "Page",
+			"of": "sur",
+			"pageSize": "Taille"
+		},
+		"languages": {
+			"title": "Langues",
+			"available": "Disponibles",
+			"current": "Courante",
+			"switch": {
+				"label": "Sélection de la langue",
+				"changedTo": "Langue changée vers {name}"
+			}
+		},
+		"settings": {
+			"title": "Paramètres",
+			"optionA": "Option A",
+			"optionB": "Option B",
+			"theme": {
+				"title": "Thème",
+				"modeLabel": "Mode",
+				"system": "Système",
+				"dark": "Sombre",
+				"light": "Clair"
+			},
+			"sidebar": {
+				"title": "Barre latérale",
+				"openLabel": "Afficher la barre latérale"
+			},
+			"modules": {
+				"title": "Modules",
+				"visibilityLabel": "Visibilité des modules",
+				"selectAll": "Tout afficher",
+				"deselectAll": "Tout masquer",
+				"ariaLabel": "Liste des modules"
+			}
+		}
+	},
+	"pages": {
+		"users": {
+			"title": "Gestion des Utilisateurs",
+			"search_placeholder": "Rechercher par nom ou email...",
+			"new_user": "Nouvel Utilisateur",
+			"create_user": "Créer un utilisateur",
+			"edit_user": "Modifier l'utilisateur",
+			"actions": {
+				"edit": "Modifier",
+				"reset_password": "Reset PWD",
+				"view_activity": "Activité",
+				"delete": "Supprimer"
+			},
+			"form": {
+				"name": "Nom complet",
+				"email": "Email",
+				"password": "Mot de passe",
+				"role": "Rôle",
+				"status": "Statut",
+				"save": "Enregistrer",
+				"cancel": "Annuler",
+				"creating": "Création...",
+				"updating": "Modification..."
+			},
+			"status": {
+				"active": "Actif",
+				"inactive": "Inactif",
+				"suspended": "Suspendu"
+			},
+			"errors": {
+				"load_failed": "Impossible de charger les utilisateurs",
+				"create_failed": "Erreur lors de la création",
+				"update_failed": "Erreur lors de la mise à jour",
+				"required_fields": "Veuillez remplir tous les champs obligatoires",
+				"network_error": "Erreur de connexion au serveur"
+			}
+		},
+		"generic": {
+			"moduleLabel": "Module",
+			"comingSoon": "Cette page sera bientôt enrichie."
+		},
+		"notifications": {
+			"subtitle": "Gérez vos notifications",
+			"search": "Rechercher",
+			"searchPlaceholder": "Rechercher une notification...",
+			"form": "Créer une notification",
+			"addNotification": "Ajouter",
+			"fields": {
+				"title": "Titre",
+				"status": "Statut",
+				"actions": "Actions",
+				"edit": "Modifier",
+				"delete": "Supprimer"
+			},
+			"status": {
+				"unread": "Non lue",
+				"read": "Lue"
+			},
+			"filter": {
+				"label": "Filtrer par statut",
+				"all": "Toutes",
+				"unread": "Non lues",
+				"read": "Lues"
+			},
+			"dateFilter": {
+				"from": "Date de début",
+				"to": "Date de fin"
+			},
+			"bulk": {
+				"label": "Actions groupées",
+				"selected": "{count} sélectionné(s)",
+				"markRead": "Marquer comme lue",
+				"markUnread": "Marquer comme non lue",
+				"deleteSelected": "Supprimer la sélection",
+				"deleteConfirm": "Supprimer les notifications sélectionnées ?",
+				"selectAll": "Tout sélectionner",
+				"selectRow": "Sélectionner la ligne"
+			},
+			"loading": "Chargement...",
+			"noResults": "Aucun résultat",
+			"error": "Erreur",
+			"save": "Enregistrer",
+			"cancel": "Annuler",
+			"deleteConfirm": "Supprimer cette notification ?",
+			"previous": "Précédent",
+			"next": "Suivant",
+			"page": "Page",
+			"of": "sur",
+			"pageSize": "Taille",
+			"live": {
+				"created": "Notification créée",
+				"updated": "Notification mise à jour",
+				"deleted": "Notification supprimée"
+			}
+		},
+		"emails": {
+			"subtitle": "Gérez vos emails",
+			"search": "Rechercher",
+			"searchPlaceholder": "Rechercher un email...",
+			"form": "Créer un email",
+			"addEmail": "Ajouter",
+			"fields": {
+				"subject": "Sujet",
+				"from": "De",
+				"status": "Statut",
+				"time": "Heure",
+				"actions": "Actions",
+				"edit": "Modifier",
+				"delete": "Supprimer",
+				"select": "Sélectionner"
+			},
+			"status": {
+				"unread": "Non lu",
+				"read": "Lu"
+			},
+			"filter": {
+				"label": "Filtrer par statut",
+				"all": "Tous",
+				"unread": "Non lus",
+				"read": "Lus"
+			},
+			"dateFilter": {
+				"from": "Date de début",
+				"to": "Date de fin"
+			},
+			"bulk": {
+				"label": "Actions groupées",
+				"selected": "{count} sélectionné(s)",
+				"markRead": "Marquer comme lu",
+				"markUnread": "Marquer comme non lu",
+				"deleteSelected": "Supprimer la sélection",
+				"deleteConfirm": "Supprimer les emails sélectionnés ?",
+				"selectAll": "Tout sélectionner",
+				"selectRow": "Sélectionner la ligne"
+			},
+			"loading": "Chargement...",
+			"noResults": "Aucun résultat",
+			"error": "Erreur",
+			"save": "Enregistrer",
+			"cancel": "Annuler",
+			"deleteConfirm": "Supprimer cet email ?",
+			"previous": "Précédent",
+			"next": "Suivant",
+			"page": "Page",
+			"of": "sur",
+			"pageSize": "Taille",
+			"live": {
+				"created": "Email créé",
+				"updated": "Email mis à jour",
+				"deleted": "Email supprimé"
+			}
+		},
+		"payments": {
+			"subtitle": "Gérez vos paiements",
+			"search": "Rechercher",
+			"searchPlaceholder": "Rechercher un paiement...",
+			"form": "Créer un paiement",
+			"addPayment": "Ajouter",
+			"fields": {
+				"customer": "Client",
+				"amount": "Montant",
+				"currency": "Devise",
+				"status": "Statut",
+				"time": "Heure",
+				"actions": "Actions",
+				"select": "Sélectionner",
+				"edit": "Modifier",
+				"delete": "Supprimer"
+			},
+			"status": {
+				"succeeded": "Réussi",
+				"pending": "En attente",
+				"failed": "Échoué",
+				"refunded": "Remboursé"
+			},
+			"filter": {
+				"label": "Filtrer par statut",
+				"all": "Tous",
+				"succeeded": "Réussis",
+				"pending": "En attente",
+				"failed": "Échoués",
+				"refunded": "Remboursés"
+			},
+			"dateFilter": {
+				"from": "Date de début",
+				"to": "Date de fin"
+			},
+			"loading": "Chargement...",
+			"noResults": "Aucun résultat",
+			"error": "Erreur",
+			"save": "Enregistrer",
+			"cancel": "Annuler",
+			"deleteConfirm": "Supprimer ce paiement ?",
+			"previous": "Précédent",
+			"next": "Suivant",
+			"page": "Page",
+			"of": "sur",
+			"pageSize": "Taille",
+			"exportCsv": "Exporter CSV",
+			"bulk": {
+				"label": "Actions groupées",
+				"selected": "{count} sélectionné(s)",
+				"selectAll": "Tout sélectionner",
+				"selectRow": "Sélectionner la ligne",
+				"deleteSelected": "Supprimer la sélection",
+				"deleteConfirm": "Supprimer les paiements sélectionnés ?"
+			},
+			"sort": {
+				"label": "Trier",
+				"by": "Champ",
+				"dir": "Ordre",
+				"byAmount": "Montant",
+				"byTime": "Date",
+				"asc": "Ascendant",
+				"desc": "Descendant"
+			},
+			"live": {
+				"created": "Paiement créé",
+				"updated": "Paiement mis à jour",
+				"deleted": "Paiement supprimé"
+			}
+		},
+		"feedbacks": {
+			"subtitle": "Gérez vos feedbacks",
+			"search": "Rechercher",
+			"searchPlaceholder": "Rechercher un feedback...",
+			"form": "Créer un feedback",
+			"addFeedback": "Ajouter",
+			"fields": {
+				"author": "Auteur",
+				"comment": "Commentaire",
+				"rating": "Note",
+				"status": "Statut",
+				"time": "Heure",
+				"actions": "Actions",
+				"edit": "Modifier",
+				"delete": "Supprimer",
+				"select": "Sélectionner"
+			},
+			"status": {
+				"new": "Nouveau",
+				"in_progress": "En cours",
+				"resolved": "Résolu"
+			},
+			"filter": {
+				"label": "Filtrer par statut",
+				"all": "Tous",
+				"new": "Nouveaux",
+				"in_progress": "En cours",
+				"resolved": "Résolus"
+			},
+			"dateFilter": {
+				"from": "Date de début",
+				"to": "Date de fin"
+			},
+			"bulk": {
+				"label": "Actions groupées",
+				"selected": "{count} sélectionné(s)",
+				"markNew": "Marquer comme nouveau",
+				"markInProgress": "Marquer en cours",
+				"markResolved": "Marquer résolu",
+				"deleteSelected": "Supprimer la sélection",
+				"deleteConfirm": "Supprimer les feedbacks sélectionnés ?",
+				"selectAll": "Tout sélectionner",
+				"selectRow": "Sélectionner la ligne"
+			},
+			"loading": "Chargement...",
+			"noResults": "Aucun résultat",
+			"error": "Erreur",
+			"save": "Enregistrer",
+			"cancel": "Annuler",
+			"deleteConfirm": "Supprimer ce feedback ?",
+			"previous": "Précédent",
+			"next": "Suivant",
+			"page": "Page",
+			"of": "sur",
+			"pageSize": "Taille",
+			"live": {
+				"created": "Feedback créé",
+				"updated": "Feedback mis à jour",
+				"deleted": "Feedback supprimé"
+			}
+		},
+		"subscriptions": {
+			"subtitle": "Gérez vos abonnements",
+			"search": "Rechercher",
+			"searchPlaceholder": "Rechercher un abonnement...",
+			"fields": {
+				"customer": "Client",
+				"plan": "Offre",
+				"price": "Prix",
+				"currency": "Devise",
+				"status": "Statut",
+				"start": "Début",
+				"end": "Fin"
+			},
+			"status": {
+				"active": "Actif",
+				"canceled": "Annulé"
+			},
+			"filter": {
+				"label": "Filtrer par statut",
+				"all": "Tous",
+				"active": "Actifs",
+				"canceled": "Annulés"
+			},
+			"dateFilter": {
+				"from": "Date de début",
+				"to": "Date de fin"
+			},
+			"sort": {
+				"label": "Trier",
+				"by": "Champ",
+				"dir": "Ordre",
+				"byPrice": "Prix",
+				"byStart": "Date de début",
+				"asc": "Ascendant",
+				"desc": "Descendant"
+			},
+			"loading": "Chargement...",
+			"noResults": "Aucun résultat",
+			"error": "Erreur",
+			"previous": "Précédent",
+			"next": "Suivant",
+			"page": "Page",
+			"of": "sur",
+			"pageSize": "Taille"
+		},
+		"chats": {
+			"subtitle": "Gérez vos conversations",
+			"search": "Rechercher",
+			"searchPlaceholder": "Rechercher une conversation...",
+			"form": "Créer une conversation",
+			"addThread": "Ajouter",
+			"viewMessages": "Voir les messages",
+			"fields": {
+				"title": "Titre",
+				"participants": "Participants",
+				"status": "Statut",
+				"actions": "Actions",
+				"edit": "Modifier",
+				"delete": "Supprimer"
+			},
+			"status": {
+				"open": "Ouvert",
+				"archived": "Archivé"
+			},
+			"filter": {
+				"label": "Filtrer par statut",
+				"all": "Tous",
+				"open": "Ouverts",
+				"archived": "Archivés"
+			},
+			"loading": "Chargement...",
+			"noResults": "Aucun résultat",
+			"error": "Erreur",
+			"save": "Enregistrer",
+			"cancel": "Annuler",
+			"deleteConfirm": "Supprimer cette conversation ?",
+			"previous": "Précédent",
+			"next": "Suivant",
+			"page": "Page",
+			"of": "sur",
+			"pageSize": "Taille",
+			"messages": {
+				"title": "Messages",
+				"panelTitle": "Messages pour « {title} »",
+				"limit": "Limite",
+				"selectThreadHint": "Sélectionnez une conversation pour afficher ses messages.",
+				"loading": "Chargement des messages...",
+				"empty": "Aucun message"
+			},
+			"live": {
+				"created": "Conversation créée",
+				"updated": "Conversation mise à jour",
+				"deleted": "Conversation supprimée",
+				"messagesLoaded": "Messages chargés : {count}"
+			}
+		},
+		"calendar": {
+			"subtitle": "Gérez votre calendrier",
+			"loading": "Chargement...",
+			"noResults": "Aucun résultat",
+			"error": "Erreur",
+			"regionLabel": "Contenu du calendrier"
+		},
+		"analytics": {
+			"subtitle": "Suivez votre trafic et vos conversions",
+			"regionLabel": "Contenu analytique"
+		},
+		"languages": {
+			"subtitle": "Gérez la langue de l'interface",
+			"regionLabel": "Contenu des langues"
+		},
+		"apis": {
+			"subtitle": "Surveiller les services externes",
+			"regionLabel": "Contenu des APIs",
+			"search": "Rechercher",
+			"searchPlaceholder": "Rechercher une API...",
+			"form": "Créer une API",
+			"addApi": "Ajouter",
+			"fields": {
+				"name": "Nom",
+				"baseUrl": "URL de base",
+				"version": "Version",
+				"status": "Statut",
+				"enabled": "Activée",
+				"tags": "Étiquettes",
+				"latencyMs": "Latence (ms)",
+				"uptimePct": "Disponibilité (%)",
+				"lastChecked": "Dernière vérification",
+				"actions": "Actions",
+				"edit": "Modifier",
+				"delete": "Supprimer",
+				"select": "Sélectionner"
+			},
+			"status": {
+				"up": "Opérationnelle",
+				"down": "En panne"
+			},
+			"filter": {
+				"label": "Filtrer par statut",
+				"all": "Toutes",
+				"up": "Opérationnelles",
+				"down": "En panne"
+			},
+			"sort": {
+				"label": "Trier",
+				"by": "Champ",
+				"dir": "Ordre",
+				"byLastChecked": "Dernière vérification",
+				"byName": "Nom",
+				"byLatency": "Latence",
+				"asc": "Ascendant",
+				"desc": "Descendant"
+			},
+			"loading": "Chargement...",
+			"noResults": "Aucun résultat",
+			"error": "Erreur",
+			"save": "Enregistrer",
+			"cancel": "Annuler",
+			"deleteConfirm": "Supprimer cette API ?",
+			"previous": "Précédent",
+			"next": "Suivant",
+			"page": "Page",
+			"of": "sur",
+			"pageSize": "Taille",
+			"live": {
+				"created": "API créée",
+				"updated": "API mise à jour",
+				"deleted": "API supprimée"
+			},
+			"keys": {
+				"title": "Clés API",
+				"form": "Créer une clé",
+				"addKey": "Ajouter",
+				"fields": {
+					"api": "API",
+					"label": "Libellé",
+					"key": "Clé",
+					"status": "Statut",
+					"scopes": "Périmètres",
+					"scopesPlaceholder": "Ex : read, write",
+					"createdAt": "Créée",
+					"lastUsedAt": "Dernière utilisation",
+					"actions": "Actions",
+					"rotate": "Régénérer",
+					"copy": "Copier",
+					"copied": "Copié !",
+					"select": "Sélectionner"
+				},
+				"status": {
+					"active": "Active",
+					"revoked": "Révoquée"
+				},
+				"filter": {
+					"label": "Filtrer par statut",
+					"all": "Toutes",
+					"active": "Actives",
+					"revoked": "Révoquées"
+				},
+				"sort": {
+					"label": "Trier",
+					"by": "Champ",
+					"dir": "Ordre",
+					"byLabel": "Libellé",
+					"byCreatedAt": "Création",
+					"byLastUsedAt": "Dernière utilisation",
+					"asc": "Ascendant",
+					"desc": "Descendant"
+				},
+				"loading": "Chargement...",
+				"noResults": "Aucun résultat",
+				"error": "Erreur",
+				"deleteConfirm": "Supprimer cette clé ?",
+				"rotateConfirm": "Régénérer cette clé ?",
+				"live": {
+					"created": "Clé créée",
+					"updated": "Clé mise à jour",
+					"deleted": "Clé supprimée",
+					"rotated": "Clé régénérée"
+				}
+			}
+		},
+		"monitoring": {
+			"subtitle": "Surveiller les ressources système",
+			"regionLabel": "Contenu de monitoring"
+		},
+		"settings": {
+			"subtitle": "Configurez votre tableau de bord et votre compte",
+			"regionLabel": "Contenu des paramètres",
+			"tabs": {
+				"ariaLabel": "Sections des paramètres",
+				"profile": "Profil",
+				"dashboard": "Tableau de bord",
+				"team": "Équipe",
+				"system": "Système"
+			}
+		}
+	}
+}

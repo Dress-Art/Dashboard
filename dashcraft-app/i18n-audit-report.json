@@ -1,0 +1,13 @@
+[i18n-audit] Résultats:
+{
+	"missingInFR": [],
+	"missingInEN": [],
+	"typeMismatches": [],
+	"usedNotInEN": [],
+	"usedNotInFR": [],
+	"stats": {
+		"enKeys": 491,
+		"frKeys": 491,
+		"usedKeys": 0
+	}
+}

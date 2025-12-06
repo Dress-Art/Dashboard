@@ -1,0 +1,497 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner "Topbar" [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - generic [ref=e7]: Rechercher...
+          - searchbox "Rechercher..." [ref=e8]
+        - generic [ref=e9]:
+          - button "Basculer le thème" [ref=e10]:
+            - img [ref=e11]
+          - navigation "Langue" [ref=e13]:
+            - button "Français" [pressed] [ref=e14]
+            - button "English" [ref=e15]
+    - complementary [ref=e16]:
+      - navigation "Sidebar" [ref=e17]:
+        - list [ref=e18]:
+          - listitem [ref=e19]:
+            - link "Analytique" [ref=e20] [cursor=pointer]:
+              - /url: /modules/analytics
+              - img [ref=e21] [cursor=pointer]
+              - generic [ref=e23] [cursor=pointer]: Analytique
+          - listitem [ref=e24]:
+            - link "Utilisateurs" [ref=e25] [cursor=pointer]:
+              - /url: /modules/users
+              - img [ref=e26] [cursor=pointer]
+              - generic [ref=e28] [cursor=pointer]: Utilisateurs
+          - listitem [ref=e29]:
+            - link "Notifications" [ref=e30] [cursor=pointer]:
+              - /url: /modules/notifications
+              - img [ref=e31] [cursor=pointer]
+              - generic [ref=e33] [cursor=pointer]: Notifications
+          - listitem [ref=e34]:
+            - link "Emails" [ref=e35] [cursor=pointer]:
+              - /url: /modules/emails
+              - img [ref=e36] [cursor=pointer]
+              - generic [ref=e39] [cursor=pointer]: Emails
+          - listitem [ref=e40]:
+            - link "Feedbacks" [ref=e41] [cursor=pointer]:
+              - /url: /modules/feedbacks
+              - img [ref=e42] [cursor=pointer]
+              - generic [ref=e44] [cursor=pointer]: Feedbacks
+          - listitem [ref=e45]:
+            - link "Paiements" [ref=e46] [cursor=pointer]:
+              - /url: /modules/payments
+              - img [ref=e47] [cursor=pointer]
+              - generic [ref=e50] [cursor=pointer]: Paiements
+          - listitem [ref=e51]:
+            - link "Calendrier" [ref=e52] [cursor=pointer]:
+              - /url: /modules/calendar
+              - img [ref=e53] [cursor=pointer]
+              - generic [ref=e56] [cursor=pointer]: Calendrier
+          - listitem [ref=e57]:
+            - link "Abonnements" [ref=e58] [cursor=pointer]:
+              - /url: /modules/subscriptions
+              - img [ref=e59] [cursor=pointer]
+              - generic [ref=e61] [cursor=pointer]: Abonnements
+          - listitem [ref=e62]:
+            - link "Chats" [ref=e63] [cursor=pointer]:
+              - /url: /modules/chats
+              - img [ref=e64] [cursor=pointer]
+              - generic [ref=e67] [cursor=pointer]: Chats
+          - listitem [ref=e68]:
+            - link "APIs" [ref=e69] [cursor=pointer]:
+              - /url: /modules/apis
+              - img [ref=e70] [cursor=pointer]
+              - generic [ref=e73] [cursor=pointer]: APIs
+          - listitem [ref=e74]:
+            - link "Monitoring" [ref=e75] [cursor=pointer]:
+              - /url: /modules/monitoring
+              - img [ref=e76] [cursor=pointer]
+              - generic [ref=e79] [cursor=pointer]: Monitoring
+          - listitem [ref=e80]:
+            - link "Langues" [ref=e81] [cursor=pointer]:
+              - /url: /modules/languages
+              - img [ref=e82] [cursor=pointer]
+              - generic [ref=e84] [cursor=pointer]: Langues
+          - listitem [ref=e85]:
+            - link "Paramètres" [ref=e86] [cursor=pointer]:
+              - /url: /modules/settings
+              - img [ref=e87] [cursor=pointer]
+              - generic [ref=e89] [cursor=pointer]: Paramètres
+    - main [ref=e90]:
+      - region "Contenu des paramètres" [ref=e91]:
+        - generic [ref=e93]:
+          - heading "Paramètres" [level=1] [ref=e94]
+          - paragraph [ref=e95]: Configurez votre tableau de bord et votre compte
+        - tablist "Sections des paramètres" [ref=e96]:
+          - tab "Profil" [ref=e97]
+          - tab "Tableau de bord" [ref=e98]
+          - tab "Équipe" [selected] [ref=e99]
+          - tab "Système" [ref=e100]
+        - tabpanel "Équipe" [ref=e102]:
+          - region "Équipe" [ref=e103]:
+            - heading "Équipe" [level=2] [ref=e105]
+            - generic [ref=e106]: Utilisateur créé
+            - form "Équipe" [ref=e107]:
+              - generic [ref=e108]:
+                - generic [ref=e109]: Nom
+                - textbox "Nom" [ref=e110]
+                - alert [ref=e111]: Le nom est requis
+              - generic [ref=e112]:
+                - generic [ref=e113]: Rôle
+                - combobox "Rôle" [ref=e114]:
+                  - option "Administrateur"
+                  - option "Éditeur"
+                  - option "Lecteur" [selected]
+              - generic [ref=e115]:
+                - generic [ref=e116]: Statut
+                - combobox "Statut" [ref=e117]:
+                  - option "Actif" [selected]
+                  - option "Inactif"
+              - button "Ajouter" [disabled] [ref=e119]
+            - table "Équipe" [ref=e121]:
+              - rowgroup [ref=e122]:
+                - row "Nom Rôle Statut Actions" [ref=e123]:
+                  - columnheader "Nom" [ref=e124]
+                  - columnheader "Rôle" [ref=e125]
+                  - columnheader "Statut" [ref=e126]
+                  - columnheader "Actions" [ref=e127]
+              - rowgroup [ref=e128]:
+                - row "E2E Cancel 1756399189327 Lecteur Actif Modifier Supprimer" [ref=e129]:
+                  - cell "E2E Cancel 1756399189327" [ref=e130]
+                  - cell "Lecteur" [ref=e131]:
+                    - generic [ref=e132]: Lecteur
+                  - cell "Actif" [ref=e133]:
+                    - generic [ref=e134]: Actif
+                  - cell "Modifier Supprimer" [ref=e135]:
+                    - generic [ref=e136]:
+                      - button "Modifier" [active] [ref=e137]
+                      - button "Supprimer" [ref=e138]
+                - row "Marlon Luettgen Administrateur Inactif Modifier Supprimer" [ref=e139]:
+                  - cell "Marlon Luettgen" [ref=e140]
+                  - cell "Administrateur" [ref=e141]:
+                    - generic [ref=e142]: Administrateur
+                  - cell "Inactif" [ref=e143]:
+                    - generic [ref=e144]: Inactif
+                  - cell "Modifier Supprimer" [ref=e145]:
+                    - generic [ref=e146]:
+                      - button "Modifier" [ref=e147]
+                      - button "Supprimer" [ref=e148]
+                - row "Gerald Stroman Lecteur Actif Modifier Supprimer" [ref=e149]:
+                  - cell "Gerald Stroman" [ref=e150]
+                  - cell "Lecteur" [ref=e151]:
+                    - generic [ref=e152]: Lecteur
+                  - cell "Actif" [ref=e153]:
+                    - generic [ref=e154]: Actif
+                  - cell "Modifier Supprimer" [ref=e155]:
+                    - generic [ref=e156]:
+                      - button "Modifier" [ref=e157]
+                      - button "Supprimer" [ref=e158]
+                - row "Holly Gutkowski Éditeur Actif Modifier Supprimer" [ref=e159]:
+                  - cell "Holly Gutkowski" [ref=e160]
+                  - cell "Éditeur" [ref=e161]:
+                    - generic [ref=e162]: Éditeur
+                  - cell "Actif" [ref=e163]:
+                    - generic [ref=e164]: Actif
+                  - cell "Modifier Supprimer" [ref=e165]:
+                    - generic [ref=e166]:
+                      - button "Modifier" [ref=e167]
+                      - button "Supprimer" [ref=e168]
+                - row "Ricky Heller-Runolfsson Éditeur Inactif Modifier Supprimer" [ref=e169]:
+                  - cell "Ricky Heller-Runolfsson" [ref=e170]
+                  - cell "Éditeur" [ref=e171]:
+                    - generic [ref=e172]: Éditeur
+                  - cell "Inactif" [ref=e173]:
+                    - generic [ref=e174]: Inactif
+                  - cell "Modifier Supprimer" [ref=e175]:
+                    - generic [ref=e176]:
+                      - button "Modifier" [ref=e177]
+                      - button "Supprimer" [ref=e178]
+                - row "Priscilla Kessler Administrateur Inactif Modifier Supprimer" [ref=e179]:
+                  - cell "Priscilla Kessler" [ref=e180]
+                  - cell "Administrateur" [ref=e181]:
+                    - generic [ref=e182]: Administrateur
+                  - cell "Inactif" [ref=e183]:
+                    - generic [ref=e184]: Inactif
+                  - cell "Modifier Supprimer" [ref=e185]:
+                    - generic [ref=e186]:
+                      - button "Modifier" [ref=e187]
+                      - button "Supprimer" [ref=e188]
+                - row "Mr. Eddie Rolfson Éditeur Actif Modifier Supprimer" [ref=e189]:
+                  - cell "Mr. Eddie Rolfson" [ref=e190]
+                  - cell "Éditeur" [ref=e191]:
+                    - generic [ref=e192]: Éditeur
+                  - cell "Actif" [ref=e193]:
+                    - generic [ref=e194]: Actif
+                  - cell "Modifier Supprimer" [ref=e195]:
+                    - generic [ref=e196]:
+                      - button "Modifier" [ref=e197]
+                      - button "Supprimer" [ref=e198]
+                - row "Elizabeth Bechtelar Éditeur Actif Modifier Supprimer" [ref=e199]:
+                  - cell "Elizabeth Bechtelar" [ref=e200]
+                  - cell "Éditeur" [ref=e201]:
+                    - generic [ref=e202]: Éditeur
+                  - cell "Actif" [ref=e203]:
+                    - generic [ref=e204]: Actif
+                  - cell "Modifier Supprimer" [ref=e205]:
+                    - generic [ref=e206]:
+                      - button "Modifier" [ref=e207]
+                      - button "Supprimer" [ref=e208]
+                - row "Derrick Treutel V Éditeur Actif Modifier Supprimer" [ref=e209]:
+                  - cell "Derrick Treutel V" [ref=e210]
+                  - cell "Éditeur" [ref=e211]:
+                    - generic [ref=e212]: Éditeur
+                  - cell "Actif" [ref=e213]:
+                    - generic [ref=e214]: Actif
+                  - cell "Modifier Supprimer" [ref=e215]:
+                    - generic [ref=e216]:
+                      - button "Modifier" [ref=e217]
+                      - button "Supprimer" [ref=e218]
+                - row "Luke Kuvalis Éditeur Actif Modifier Supprimer" [ref=e219]:
+                  - cell "Luke Kuvalis" [ref=e220]
+                  - cell "Éditeur" [ref=e221]:
+                    - generic [ref=e222]: Éditeur
+                  - cell "Actif" [ref=e223]:
+                    - generic [ref=e224]: Actif
+                  - cell "Modifier Supprimer" [ref=e225]:
+                    - generic [ref=e226]:
+                      - button "Modifier" [ref=e227]
+                      - button "Supprimer" [ref=e228]
+                - row "Mildred Davis Lecteur Actif Modifier Supprimer" [ref=e229]:
+                  - cell "Mildred Davis" [ref=e230]
+                  - cell "Lecteur" [ref=e231]:
+                    - generic [ref=e232]: Lecteur
+                  - cell "Actif" [ref=e233]:
+                    - generic [ref=e234]: Actif
+                  - cell "Modifier Supprimer" [ref=e235]:
+                    - generic [ref=e236]:
+                      - button "Modifier" [ref=e237]
+                      - button "Supprimer" [ref=e238]
+                - row "Mr. Howard Cruickshank Administrateur Actif Modifier Supprimer" [ref=e239]:
+                  - cell "Mr. Howard Cruickshank" [ref=e240]
+                  - cell "Administrateur" [ref=e241]:
+                    - generic [ref=e242]: Administrateur
+                  - cell "Actif" [ref=e243]:
+                    - generic [ref=e244]: Actif
+                  - cell "Modifier Supprimer" [ref=e245]:
+                    - generic [ref=e246]:
+                      - button "Modifier" [ref=e247]
+                      - button "Supprimer" [ref=e248]
+                - row "Suzanne Considine Lecteur Actif Modifier Supprimer" [ref=e249]:
+                  - cell "Suzanne Considine" [ref=e250]
+                  - cell "Lecteur" [ref=e251]:
+                    - generic [ref=e252]: Lecteur
+                  - cell "Actif" [ref=e253]:
+                    - generic [ref=e254]: Actif
+                  - cell "Modifier Supprimer" [ref=e255]:
+                    - generic [ref=e256]:
+                      - button "Modifier" [ref=e257]
+                      - button "Supprimer" [ref=e258]
+                - row "Allison Carroll Administrateur Inactif Modifier Supprimer" [ref=e259]:
+                  - cell "Allison Carroll" [ref=e260]
+                  - cell "Administrateur" [ref=e261]:
+                    - generic [ref=e262]: Administrateur
+                  - cell "Inactif" [ref=e263]:
+                    - generic [ref=e264]: Inactif
+                  - cell "Modifier Supprimer" [ref=e265]:
+                    - generic [ref=e266]:
+                      - button "Modifier" [ref=e267]
+                      - button "Supprimer" [ref=e268]
+                - row "Irvin Heller Administrateur Inactif Modifier Supprimer" [ref=e269]:
+                  - cell "Irvin Heller" [ref=e270]
+                  - cell "Administrateur" [ref=e271]:
+                    - generic [ref=e272]: Administrateur
+                  - cell "Inactif" [ref=e273]:
+                    - generic [ref=e274]: Inactif
+                  - cell "Modifier Supprimer" [ref=e275]:
+                    - generic [ref=e276]:
+                      - button "Modifier" [ref=e277]
+                      - button "Supprimer" [ref=e278]
+                - row "Stacy Bogan Administrateur Actif Modifier Supprimer" [ref=e279]:
+                  - cell "Stacy Bogan" [ref=e280]
+                  - cell "Administrateur" [ref=e281]:
+                    - generic [ref=e282]: Administrateur
+                  - cell "Actif" [ref=e283]:
+                    - generic [ref=e284]: Actif
+                  - cell "Modifier Supprimer" [ref=e285]:
+                    - generic [ref=e286]:
+                      - button "Modifier" [ref=e287]
+                      - button "Supprimer" [ref=e288]
+                - row "Dr. Gregory Harvey Éditeur Actif Modifier Supprimer" [ref=e289]:
+                  - cell "Dr. Gregory Harvey" [ref=e290]
+                  - cell "Éditeur" [ref=e291]:
+                    - generic [ref=e292]: Éditeur
+                  - cell "Actif" [ref=e293]:
+                    - generic [ref=e294]: Actif
+                  - cell "Modifier Supprimer" [ref=e295]:
+                    - generic [ref=e296]:
+                      - button "Modifier" [ref=e297]
+                      - button "Supprimer" [ref=e298]
+                - row "Loren Bruen Éditeur Inactif Modifier Supprimer" [ref=e299]:
+                  - cell "Loren Bruen" [ref=e300]
+                  - cell "Éditeur" [ref=e301]:
+                    - generic [ref=e302]: Éditeur
+                  - cell "Inactif" [ref=e303]:
+                    - generic [ref=e304]: Inactif
+                  - cell "Modifier Supprimer" [ref=e305]:
+                    - generic [ref=e306]:
+                      - button "Modifier" [ref=e307]
+                      - button "Supprimer" [ref=e308]
+                - row "Mr. Fredrick Schowalter Lecteur Inactif Modifier Supprimer" [ref=e309]:
+                  - cell "Mr. Fredrick Schowalter" [ref=e310]
+                  - cell "Lecteur" [ref=e311]:
+                    - generic [ref=e312]: Lecteur
+                  - cell "Inactif" [ref=e313]:
+                    - generic [ref=e314]: Inactif
+                  - cell "Modifier Supprimer" [ref=e315]:
+                    - generic [ref=e316]:
+                      - button "Modifier" [ref=e317]
+                      - button "Supprimer" [ref=e318]
+                - row "Bernice Paucek Lecteur Actif Modifier Supprimer" [ref=e319]:
+                  - cell "Bernice Paucek" [ref=e320]
+                  - cell "Lecteur" [ref=e321]:
+                    - generic [ref=e322]: Lecteur
+                  - cell "Actif" [ref=e323]:
+                    - generic [ref=e324]: Actif
+                  - cell "Modifier Supprimer" [ref=e325]:
+                    - generic [ref=e326]:
+                      - button "Modifier" [ref=e327]
+                      - button "Supprimer" [ref=e328]
+                - row "Miss Arlene Wintheiser Administrateur Inactif Modifier Supprimer" [ref=e329]:
+                  - cell "Miss Arlene Wintheiser" [ref=e330]
+                  - cell "Administrateur" [ref=e331]:
+                    - generic [ref=e332]: Administrateur
+                  - cell "Inactif" [ref=e333]:
+                    - generic [ref=e334]: Inactif
+                  - cell "Modifier Supprimer" [ref=e335]:
+                    - generic [ref=e336]:
+                      - button "Modifier" [ref=e337]
+                      - button "Supprimer" [ref=e338]
+                - row "Mr. Micheal Vandervort Lecteur Inactif Modifier Supprimer" [ref=e339]:
+                  - cell "Mr. Micheal Vandervort" [ref=e340]
+                  - cell "Lecteur" [ref=e341]:
+                    - generic [ref=e342]: Lecteur
+                  - cell "Inactif" [ref=e343]:
+                    - generic [ref=e344]: Inactif
+                  - cell "Modifier Supprimer" [ref=e345]:
+                    - generic [ref=e346]:
+                      - button "Modifier" [ref=e347]
+                      - button "Supprimer" [ref=e348]
+                - row "Miss Judith Bergstrom Éditeur Actif Modifier Supprimer" [ref=e349]:
+                  - cell "Miss Judith Bergstrom" [ref=e350]
+                  - cell "Éditeur" [ref=e351]:
+                    - generic [ref=e352]: Éditeur
+                  - cell "Actif" [ref=e353]:
+                    - generic [ref=e354]: Actif
+                  - cell "Modifier Supprimer" [ref=e355]:
+                    - generic [ref=e356]:
+                      - button "Modifier" [ref=e357]
+                      - button "Supprimer" [ref=e358]
+                - row "Agnes Quigley Lecteur Actif Modifier Supprimer" [ref=e359]:
+                  - cell "Agnes Quigley" [ref=e360]
+                  - cell "Lecteur" [ref=e361]:
+                    - generic [ref=e362]: Lecteur
+                  - cell "Actif" [ref=e363]:
+                    - generic [ref=e364]: Actif
+                  - cell "Modifier Supprimer" [ref=e365]:
+                    - generic [ref=e366]:
+                      - button "Modifier" [ref=e367]
+                      - button "Supprimer" [ref=e368]
+                - row "Joel Dare Administrateur Inactif Modifier Supprimer" [ref=e369]:
+                  - cell "Joel Dare" [ref=e370]
+                  - cell "Administrateur" [ref=e371]:
+                    - generic [ref=e372]: Administrateur
+                  - cell "Inactif" [ref=e373]:
+                    - generic [ref=e374]: Inactif
+                  - cell "Modifier Supprimer" [ref=e375]:
+                    - generic [ref=e376]:
+                      - button "Modifier" [ref=e377]
+                      - button "Supprimer" [ref=e378]
+                - row "Kristin Hauck Administrateur Inactif Modifier Supprimer" [ref=e379]:
+                  - cell "Kristin Hauck" [ref=e380]
+                  - cell "Administrateur" [ref=e381]:
+                    - generic [ref=e382]: Administrateur
+                  - cell "Inactif" [ref=e383]:
+                    - generic [ref=e384]: Inactif
+                  - cell "Modifier Supprimer" [ref=e385]:
+                    - generic [ref=e386]:
+                      - button "Modifier" [ref=e387]
+                      - button "Supprimer" [ref=e388]
+                - row "Terrance Ferry Sr. Lecteur Actif Modifier Supprimer" [ref=e389]:
+                  - cell "Terrance Ferry Sr." [ref=e390]
+                  - cell "Lecteur" [ref=e391]:
+                    - generic [ref=e392]: Lecteur
+                  - cell "Actif" [ref=e393]:
+                    - generic [ref=e394]: Actif
+                  - cell "Modifier Supprimer" [ref=e395]:
+                    - generic [ref=e396]:
+                      - button "Modifier" [ref=e397]
+                      - button "Supprimer" [ref=e398]
+                - row "Rickey Carroll Lecteur Actif Modifier Supprimer" [ref=e399]:
+                  - cell "Rickey Carroll" [ref=e400]
+                  - cell "Lecteur" [ref=e401]:
+                    - generic [ref=e402]: Lecteur
+                  - cell "Actif" [ref=e403]:
+                    - generic [ref=e404]: Actif
+                  - cell "Modifier Supprimer" [ref=e405]:
+                    - generic [ref=e406]:
+                      - button "Modifier" [ref=e407]
+                      - button "Supprimer" [ref=e408]
+                - row "Bernadette Cole Lecteur Inactif Modifier Supprimer" [ref=e409]:
+                  - cell "Bernadette Cole" [ref=e410]
+                  - cell "Lecteur" [ref=e411]:
+                    - generic [ref=e412]: Lecteur
+                  - cell "Inactif" [ref=e413]:
+                    - generic [ref=e414]: Inactif
+                  - cell "Modifier Supprimer" [ref=e415]:
+                    - generic [ref=e416]:
+                      - button "Modifier" [ref=e417]
+                      - button "Supprimer" [ref=e418]
+                - row "Cheryl Schowalter Lecteur Inactif Modifier Supprimer" [ref=e419]:
+                  - cell "Cheryl Schowalter" [ref=e420]
+                  - cell "Lecteur" [ref=e421]:
+                    - generic [ref=e422]: Lecteur
+                  - cell "Inactif" [ref=e423]:
+                    - generic [ref=e424]: Inactif
+                  - cell "Modifier Supprimer" [ref=e425]:
+                    - generic [ref=e426]:
+                      - button "Modifier" [ref=e427]
+                      - button "Supprimer" [ref=e428]
+                - row "Norman Powlowski Administrateur Actif Modifier Supprimer" [ref=e429]:
+                  - cell "Norman Powlowski" [ref=e430]
+                  - cell "Administrateur" [ref=e431]:
+                    - generic [ref=e432]: Administrateur
+                  - cell "Actif" [ref=e433]:
+                    - generic [ref=e434]: Actif
+                  - cell "Modifier Supprimer" [ref=e435]:
+                    - generic [ref=e436]:
+                      - button "Modifier" [ref=e437]
+                      - button "Supprimer" [ref=e438]
+                - row "Andres Murazik Lecteur Inactif Modifier Supprimer" [ref=e439]:
+                  - cell "Andres Murazik" [ref=e440]
+                  - cell "Lecteur" [ref=e441]:
+                    - generic [ref=e442]: Lecteur
+                  - cell "Inactif" [ref=e443]:
+                    - generic [ref=e444]: Inactif
+                  - cell "Modifier Supprimer" [ref=e445]:
+                    - generic [ref=e446]:
+                      - button "Modifier" [ref=e447]
+                      - button "Supprimer" [ref=e448]
+                - row "Whitney Ferry Administrateur Actif Modifier Supprimer" [ref=e449]:
+                  - cell "Whitney Ferry" [ref=e450]
+                  - cell "Administrateur" [ref=e451]:
+                    - generic [ref=e452]: Administrateur
+                  - cell "Actif" [ref=e453]:
+                    - generic [ref=e454]: Actif
+                  - cell "Modifier Supprimer" [ref=e455]:
+                    - generic [ref=e456]:
+                      - button "Modifier" [ref=e457]
+                      - button "Supprimer" [ref=e458]
+                - row "Geneva Fisher Administrateur Actif Modifier Supprimer" [ref=e459]:
+                  - cell "Geneva Fisher" [ref=e460]
+                  - cell "Administrateur" [ref=e461]:
+                    - generic [ref=e462]: Administrateur
+                  - cell "Actif" [ref=e463]:
+                    - generic [ref=e464]: Actif
+                  - cell "Modifier Supprimer" [ref=e465]:
+                    - generic [ref=e466]:
+                      - button "Modifier" [ref=e467]
+                      - button "Supprimer" [ref=e468]
+                - row "Wilfred Gerlach Éditeur Inactif Modifier Supprimer" [ref=e469]:
+                  - cell "Wilfred Gerlach" [ref=e470]
+                  - cell "Éditeur" [ref=e471]:
+                    - generic [ref=e472]: Éditeur
+                  - cell "Inactif" [ref=e473]:
+                    - generic [ref=e474]: Inactif
+                  - cell "Modifier Supprimer" [ref=e475]:
+                    - generic [ref=e476]:
+                      - button "Modifier" [ref=e477]
+                      - button "Supprimer" [ref=e478]
+                - row "Robin Stroman Administrateur Actif Modifier Supprimer" [ref=e479]:
+                  - cell "Robin Stroman" [ref=e480]
+                  - cell "Administrateur" [ref=e481]:
+                    - generic [ref=e482]: Administrateur
+                  - cell "Actif" [ref=e483]:
+                    - generic [ref=e484]: Actif
+                  - cell "Modifier Supprimer" [ref=e485]:
+                    - generic [ref=e486]:
+                      - button "Modifier" [ref=e487]
+                      - button "Supprimer" [ref=e488]
+                - row "Helen Mosciski Éditeur Inactif Modifier Supprimer" [ref=e489]:
+                  - cell "Helen Mosciski" [ref=e490]
+                  - cell "Éditeur" [ref=e491]:
+                    - generic [ref=e492]: Éditeur
+                  - cell "Inactif" [ref=e493]:
+                    - generic [ref=e494]: Inactif
+                  - cell "Modifier Supprimer" [ref=e495]:
+                    - generic [ref=e496]:
+                      - button "Modifier" [ref=e497]
+                      - button "Supprimer" [ref=e498]
+  - button "Open Next.js Dev Tools" [ref=e504] [cursor=pointer]:
+    - img [ref=e505] [cursor=pointer]
+  - alert [ref=e508]
+```
