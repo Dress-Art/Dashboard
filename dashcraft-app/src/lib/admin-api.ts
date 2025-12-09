@@ -67,7 +67,7 @@ export class AdminAPI {
         }
 
         const queryString = searchParams.toString()
-        return this.makeRequest(`/admin-get-users${queryString ? `?${queryString}` : ''}`)
+        return this.makeRequest(`/admin-users-list${queryString ? `?${queryString}` : ''}`)
     }
 
     async createUser(userData: {
