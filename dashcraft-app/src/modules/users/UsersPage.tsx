@@ -44,6 +44,7 @@ export function UsersPage() {
     })
 
     // FONCTION: Traduire les erreurs réseau
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const translateError = (err: any): string => {
         if (err?.message?.includes('Failed to fetch') || err?.message?.includes('fetch')) {
             return t('errors.network_error')
@@ -435,11 +436,11 @@ export function UsersPage() {
                         </h3>
                         <form onSubmit={(e) => {
                             e.preventDefault()
-                            const formData = new FormData(e.currentTarget)
+                            const formData = new FormData(e.target as HTMLFormElement)
                             const updates = {
                                 name: formData.get('name') as string,
                                 role: formData.get('role') as string,
-                                status: formData.get('status') as string,
+                                status: formData.get('status') as 'active' | 'inactive' | 'suspended',
                             }
                             handleUpdateUser(editingUser.id, updates)
                         }} className="space-y-4">

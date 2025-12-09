@@ -9,8 +9,10 @@ export class AdminAPI {
     private async makeRequest(endpoint: string, options: RequestInit = {}) {
         // Utiliser la méthode invoke de Supabase (plus propre)
         try {
+            const method = (options.method || 'GET') as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+            
             const { data, error } = await supabase.functions.invoke(endpoint.replace('/', ''), {
-                method: options.method || 'GET',
+                method,
                 ...(options.body && { body: JSON.parse(options.body as string) }),
             })
 
@@ -52,12 +54,16 @@ export class AdminAPI {
     }
 
     // 👥 GESTION DES UTILISATEURS
-    async getUsers(params?: { search?: string }) {
+    async getUsers(params?: { search?: string; limit?: number }) {
         const searchParams = new URLSearchParams()
         
         // Ajouter les paramètres seulement s'ils existent
         if (params?.search && params.search.trim()) {
             searchParams.set('search', params.search.trim())
+        }
+        
+        if (params?.limit) {
+            searchParams.set('limit', params.limit.toString())
         }
 
         const queryString = searchParams.toString()

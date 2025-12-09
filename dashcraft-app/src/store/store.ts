@@ -28,6 +28,8 @@ const defaultModuleVisibility: Record<DashboardKey, boolean> = {
     monitoring: true,
     languages: true,
     settings: true,
+    agents: false,
+    delivery: false
 }
 
 const initialState: UiState = {

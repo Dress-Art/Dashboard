@@ -3,8 +3,9 @@
 import {type ReactNode} from 'react'
 import {Sidebar} from '@/components/layout/Sidebar'
 import {Topbar} from '@/components/layout/Topbar'
-import {useSelector} from 'react-redux'
+import {useSelector, useDispatch} from 'react-redux'
 import type {RootState} from '@/store/store'
+import {toggleSidebar} from '@/store/store'
 
 /**
  * DashboardLayout
@@ -15,7 +16,13 @@ export interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({children}: DashboardLayoutProps) {
+	const dispatch = useDispatch()
 	const sidebarOpen = useSelector((s: RootState) => s.ui.sidebarOpen)
+
+	const handleToggleSidebar = () => {
+		dispatch(toggleSidebar())
+	}
+
 	return (
 		<div
 			className={`min-h-screen grid grid-rows-[auto_1fr] ${
@@ -30,7 +37,7 @@ export function DashboardLayout({children}: DashboardLayoutProps) {
 				data-testid='sidebar-container'
 				aria-hidden={!sidebarOpen}
 			>
-				<Sidebar />
+				<Sidebar isCollapsed={!sidebarOpen} onToggle={handleToggleSidebar} />
 			</aside>
 			<main className='p-4'>{children}</main>
 		</div>

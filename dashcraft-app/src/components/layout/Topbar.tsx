@@ -120,7 +120,7 @@ export function Topbar() {
 
     const getUserInitials = () => {
         const name = getUserDisplayName()
-        return name.split(' ').map(part => part[0]).join('').substring(0, 2).toUpperCase()
+        return name.split(' ').map((part: string) => part[0]).join('').substring(0, 2).toUpperCase()
     }
 
     return (
