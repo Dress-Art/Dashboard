@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { adminAPI } from '@/lib/admin-api'
 import { AgentsTable } from './AgentsTable'
+import { PlusIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
 
 interface AgentEntity {
     id: string
@@ -173,74 +174,64 @@ export function AgentsPage() {
         <div className="p-6 space-y-6">
             {/* Header avec actions */}
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    Agents Support
-                    <span className="text-sm font-normal text-gray-500 ml-2">
-                        Gestion complète des agents
-                    </span>
-                </h1>
+                <div>
+                    <h1 className="text-3xl font-bold text-black dark:text-white">Agents Support</h1>
+                    <p className="text-gray-600 dark:text-gray-400 mt-1">Gestion complète des agents support</p>
+                </div>
                 
-                <div className="flex space-x-3">
+                <div className="flex gap-3">
                     <button
                         onClick={() => {/* Exporter */}}
-                        className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        className="px-4 py-2 text-black dark:text-white bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors font-medium flex items-center gap-2"
                     >
-                        📊 Exporter
+                        <ArrowDownTrayIcon className="w-4 h-4" />
+                        Exporter
                     </button>
                     <button
                         onClick={() => setShowCreateModal(true)}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                        className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors font-medium flex items-center gap-2"
                     >
-                        + Nouvel agent
+                        <PlusIcon className="w-4 h-4" />
+                        Nouvel agent
                     </button>
                 </div>
             </div>
 
             {/* Erreurs */}
             {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 p-4 rounded-lg flex justify-between items-start">
-                    <div className="flex items-start space-x-2">
-                        <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
-                        <span>{error}</span>
-                    </div>
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-200 p-4 rounded-lg flex justify-between items-start">
+                    <span>{error}</span>
                     <button
                         onClick={() => setError(null)}
-                        className="text-red-600 hover:text-red-800 dark:text-red-400 ml-4"
+                        className="text-red-700 dark:text-red-200 hover:text-red-900 dark:hover:text-red-100"
                     >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        ✕
                     </button>
                 </div>
             )}
 
-            {/* Tabs et contenu */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-                <div className="border-b border-gray-200 dark:border-gray-700">
-                    <nav className="flex space-x-8 px-6">
+            {/* Contenu principal */}
+            <div className="bg-white dark:bg-black rounded-lg shadow-md border border-gray-300 dark:border-gray-700">
+                <div className="border-b border-gray-300 dark:border-gray-700 p-6">
+                    <nav className="flex gap-6">
                         {[
                             { id: 'all', label: 'Tous les agents', count: data?.total || 0 },
                             { id: 'available', label: 'Disponibles', count: data?.items?.filter(a => a.status === 'available').length || 0 },
                             { id: 'sessions', label: 'Sessions actives', count: data?.items?.reduce((sum, a) => sum + a.currentSessions, 0) || 0 },
-                            { id: 'performance', label: 'Performances', count: null }
                         ].map((tab) => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                                className={`pb-3 px-2 border-b-2 font-medium transition-colors ${
                                     activeTab === tab.id
-                                        ? 'border-indigo-500 text-indigo-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        ? 'border-black dark:border-white text-black dark:text-white'
+                                        : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                                 }`}
                             >
                                 {tab.label}
-                                {tab.count !== null && (
-                                    <span className="ml-2 bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">
-                                        {tab.count}
-                                    </span>
-                                )}
+                                <span className="ml-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 py-0.5 px-2 rounded-full text-xs">
+                                    {tab.count}
+                                </span>
                             </button>
                         ))}
                     </nav>
@@ -256,14 +247,14 @@ export function AgentsPage() {
                                     value={q}
                                     onChange={(e) => setQ(e.target.value)}
                                     placeholder="Rechercher un agent..."
-                                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                                 />
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                                    className="px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 transition-colors font-medium"
                                 >
-                                    {loading ? '⏳' : '🔍'} Rechercher
+                                    {loading ? 'Recherche...' : 'Rechercher'}
                                 </button>
                             </form>
 
@@ -278,16 +269,9 @@ export function AgentsPage() {
                     )}
 
                     {activeTab === 'sessions' && (
-                        <div>
-                            <h3 className="text-lg font-medium mb-4">Sessions Actives</h3>
-                            {/* Interface de gestion des sessions */}
-                        </div>
-                    )}
-
-                    {activeTab === 'performance' && (
-                        <div>
-                            <h3 className="text-lg font-medium mb-4">Performances des Agents</h3>
-                            {/* Statistiques et graphiques */}
+                        <div className="text-center py-8">
+                            <h3 className="text-lg font-medium text-black dark:text-white">Sessions Actives</h3>
+                            <p className="text-gray-600 dark:text-gray-400 mt-2">Gestion des sessions en cours</p>
                         </div>
                     )}
                 </div>
@@ -295,18 +279,16 @@ export function AgentsPage() {
 
             {/* Modale création agent */}
             {showCreateModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
-                        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-                            Créer un nouvel agent
-                        </h3>
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white dark:bg-black rounded-lg p-6 w-full max-w-md border border-gray-300 dark:border-gray-700">
+                        <h3 className="text-lg font-semibold mb-4 text-black dark:text-white">Créer un nouvel agent</h3>
                         <form onSubmit={handleCreateAgent} className="space-y-4">
                             <input
                                 type="text"
                                 placeholder="Nom complet *"
                                 value={newAgent.name}
                                 onChange={(e) => setNewAgent(prev => ({ ...prev, name: e.target.value }))}
-                                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white"
                                 required
                             />
                             <input
@@ -314,7 +296,7 @@ export function AgentsPage() {
                                 placeholder="Email *"
                                 value={newAgent.email}
                                 onChange={(e) => setNewAgent(prev => ({ ...prev, email: e.target.value }))}
-                                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white"
                                 required
                             />
                             <input
@@ -322,7 +304,7 @@ export function AgentsPage() {
                                 placeholder="Sessions simultanées max"
                                 value={newAgent.maxConcurrentSessions}
                                 onChange={(e) => setNewAgent(prev => ({ ...prev, maxConcurrentSessions: parseInt(e.target.value) }))}
-                                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white"
                                 min="1"
                                 max="20"
                             />
@@ -330,14 +312,14 @@ export function AgentsPage() {
                                 <button
                                     type="submit"
                                     disabled={actionLoading === 'create'}
-                                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                                    className="flex-1 px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 transition-colors font-medium"
                                 >
                                     {actionLoading === 'create' ? 'Création...' : 'Créer l\'agent'}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setShowCreateModal(false)}
-                                    className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                                    className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-800 text-black dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors font-medium"
                                 >
                                     Annuler
                                 </button>

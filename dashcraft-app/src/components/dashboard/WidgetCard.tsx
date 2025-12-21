@@ -17,18 +17,18 @@ export function WidgetCard({title, id, className, children}: WidgetCardProps) {
 		<section
 			id={id}
 			className={cn(
-				'rounded-lg border border-white/10 bg-white/5 p-4',
-				'shadow-sm shadow-black/10',
+				'rounded-lg bg-white dark:bg-black p-6',
+				'shadow-md',
 				className,
 			)}
 			aria-labelledby={id ? `${id}-title` : undefined}
 		>
 			<header className='mb-4'>
-				<h2 id={id ? `${id}-title` : undefined} className='text-sm font-medium'>
+				<h2 id={id ? `${id}-title` : undefined} className='text-sm font-semibold text-black dark:text-white'>
 					{title}
 				</h2>
 			</header>
-			<div>{children}</div>
+			<div className='text-black dark:text-white'>{children}</div>
 		</section>
 	)
 }

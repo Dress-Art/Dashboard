@@ -9,7 +9,9 @@ import {
   UserGroupIcon,
   TruckIcon,
   Cog6ToothIcon,
-  ArrowRightOnRectangleIcon
+  ArrowRightOnRectangleIcon,
+  ChevronDoubleLeftIcon,
+  ChevronDoubleRightIcon,
 } from '@heroicons/react/24/outline'
 
 interface SidebarProps {
@@ -22,7 +24,6 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
 
   const isActive = (path: string) => pathname.startsWith(path) && path !== '/dashboard' ? true : pathname === path
 
-  // 🎯 NAVIGATION SIMPLIFIÉE - Clic direct vers les pages principales
   const menuItems = [
     {
       id: 'dashboard',
@@ -55,12 +56,11 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   ]
 
   return (
-    <div className={`bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ${
-      isCollapsed ? 'w-16' : 'w-64'
+    <aside className={`bg-white dark:bg-black border-r border-gray-300 dark:border-gray-700 transition-all duration-300 flex flex-col h-screen fixed top-0 left-0 z-20 ${
+      isCollapsed ? 'w-20' : 'w-64'
     }`}>
       
-      {/* Header avec toggle */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+      <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} p-4 border-b border-gray-300 dark:border-gray-700 h-16 flex-shrink-0`}>
         {!isCollapsed && (
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">
             DashCraft
@@ -70,93 +70,60 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           onClick={onToggle}
           className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                  d={isCollapsed ? "M13 5l7 7-7 7M5 5l7 7-7 7" : "M11 19l-7-7 7-7M19 19l-7-7 7-7"} />
-          </svg>
+          {isCollapsed ? (
+            <ChevronDoubleRightIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          ) : (
+            <ChevronDoubleLeftIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          )}
         </button>
       </div>
 
-      {/* Navigation principale */}
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {menuItems.map((item) => (
           <div key={item.id} className="relative group">
             <Link
               href={item.path}
               className={`flex items-center p-3 rounded-lg transition-all duration-200 ${
                 isActive(item.path)
-                  ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 border-l-4 border-indigo-500'
+                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
+              <item.icon className="w-6 h-6 flex-shrink-0" />
               
               {!isCollapsed && (
-                <div className="ml-3">
-                  <div className="font-medium">{item.title}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {item.description}
-                  </div>
-                </div>
+                <span className="ml-3 font-medium">{item.title}</span>
               )}
             </Link>
-
-            {/* Tooltip en mode collapsed */}
             {isCollapsed && (
-              <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap">
-                <div className="font-medium">{item.title}</div>
-                <div className="text-xs opacity-75">{item.description}</div>
+              <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2 py-1 text-sm font-medium text-white bg-gray-900 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
+                {item.title}
               </div>
             )}
           </div>
         ))}
       </nav>
 
-      {/* Footer avec paramètres et déconnexion */}
-      <div className="border-t border-gray-200 dark:border-gray-700 p-4 space-y-2">
-        
-        {/* Paramètres */}
-        <div className="relative group">
-          <Link
-            href="/settings"
-            className={`flex items-center p-3 rounded-lg transition-colors ${
-              pathname === '/settings'
-                ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-            }`}
-          >
-            <Cog6ToothIcon className="w-5 h-5 flex-shrink-0" />
-            {!isCollapsed && <span className="ml-3">Paramètres</span>}
-          </Link>
-          
-          {isCollapsed && (
-            <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-              Paramètres
-            </div>
-          )}
-        </div>
-
-        {/* Déconnexion */}
-        <div className="relative group">
-          <button
-            className="w-full flex items-center p-3 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-            onClick={() => {
-              // Logique de déconnexion
-              console.log('Déconnexion')
-            }}
-          >
-            <ArrowRightOnRectangleIcon className="w-5 h-5 flex-shrink-0" />
-            {!isCollapsed && <span className="ml-3">Se déconnecter</span>}
-          </button>
-          
-          {isCollapsed && (
-            <div className="absolute left-full ml-2 px-2 py-1 bg-red-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-              Se déconnecter
-            </div>
-          )}
-        </div>
+      <div className="p-4 border-t border-gray-300 dark:border-gray-700 mt-auto flex-shrink-0">
+        <Link
+          href="/settings"
+          className={`flex items-center p-3 rounded-lg transition-all duration-200 ${
+            isActive('/settings')
+              ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
+              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
+          }`}
+        >
+          <Cog6ToothIcon className="w-6 h-6 flex-shrink-0" />
+          {!isCollapsed && <span className="ml-3 font-medium">Paramètres</span>}
+        </Link>
+        <button
+          className="w-full flex items-center p-3 mt-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+        >
+          <ArrowRightOnRectangleIcon className="w-6 h-6 flex-shrink-0" />
+          {!isCollapsed && <span className="ml-3 font-medium">Déconnexion</span>}
+        </button>
       </div>
-    </div>
+    </aside>
   )
 }
-
+// No new string, this will delete the matched text

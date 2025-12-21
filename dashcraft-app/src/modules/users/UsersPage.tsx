@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { adminAPI } from '@/lib/admin-api'
+import { PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline'
 
 interface UserEntity {
     id: string
@@ -155,10 +156,10 @@ export function UsersPage() {
         return (
             <div className="p-6">
                 <div className="animate-pulse space-y-4">
-                    <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
-                    <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                    <div className="h-8 bg-gray-200 dark:bg-gray-800 rounded w-1/4"></div>
+                    <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded"></div>
                     {[...Array(5)].map((_, i) => (
-                        <div key={i} className="h-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                        <div key={i} className="h-16 bg-gray-200 dark:bg-gray-800 rounded"></div>
                     ))}
                 </div>
             </div>
@@ -174,7 +175,7 @@ export function UsersPage() {
                 </h1>
                 <button
                     onClick={() => setShowCreateModal(true)}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                    className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors font-medium"
                 >
                     + {t('new_user')}
                 </button>
@@ -201,27 +202,27 @@ export function UsersPage() {
             )}
 
             {/* Recherche - Sans sélecteur de taille */}
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+            <div className="bg-white dark:bg-black p-4 rounded-lg shadow border border-gray-300 dark:border-gray-700">
                 <form onSubmit={handleSearch} className="flex gap-4">
                     <input
                         type="text"
                         value={q}
                         onChange={(e) => setQ(e.target.value)}
                         placeholder={t('search_placeholder')}
-                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white"
                     />
                     <button
                         type="submit"
                         disabled={loading}
-                        className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                        className="px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 transition-colors font-medium"
                     >
-                        {loading ? '⏳' : '🔍'} Rechercher
+                        {loading ? 'Recherche...' : 'Rechercher'}
                     </button>
                 </form>
                 
                 {/* Compteur total sans pagination */}
                 {data && (
-                    <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                    <div className="mt-2 text-sm text-black dark:text-white">
                         {data.total > 0 ? (
                             <>Affichage de {data.items.length} utilisateur{data.items.length > 1 ? 's' : ''} (total : {data.total})</>
                         ) : (
@@ -233,12 +234,12 @@ export function UsersPage() {
 
             {/* 🎯 ÉTAT VIDE - Aucun utilisateur */}
             {data && data.items.length === 0 && !loading && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
-                    <div className="text-6xl mb-4">👥</div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                <div className="bg-white dark:bg-black rounded-lg shadow p-12 text-center border border-gray-300 dark:border-gray-700">
+                    <div className="text-4xl mb-4 text-black dark:text-white">👤</div>
+                    <h3 className="text-lg font-semibold text-black dark:text-white mb-2">
                         Aucun utilisateur trouvé
                     </h3>
-                    <p className="text-gray-500 dark:text-gray-400 mb-6">
+                    <p className="text-black dark:text-white mb-6">
                         {q ? 
                             `Aucun utilisateur ne correspond à "${q}"` : 
                             'Il n\'y a pas encore d\'utilisateurs dans la base de données.'
@@ -248,7 +249,7 @@ export function UsersPage() {
                         {q && (
                             <button
                                 onClick={() => setQ('')}
-                                className="px-4 py-2 text-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+                                className="px-4 py-2 text-black dark:text-white border border-black dark:border-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
                             >
                                 Voir tous les utilisateurs
                             </button>
@@ -256,7 +257,7 @@ export function UsersPage() {
                         <div>
                             <button
                                 onClick={() => setShowCreateModal(true)}
-                                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                                className="px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors font-medium"
                             >
                                 Créer le premier utilisateur
                             </button>
@@ -267,41 +268,41 @@ export function UsersPage() {
 
             {/* Tableau des utilisateurs - TOUS affichés */}
             {data && data.items.length > 0 && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                <div className="bg-white dark:bg-black rounded-lg shadow overflow-hidden border border-gray-300 dark:border-gray-700">
                     <div className="overflow-x-auto">
                         <table className="w-full">
-                            <thead className="bg-gray-50 dark:bg-gray-700">
+                            <thead className="bg-white dark:bg-black border-b border-gray-300 dark:border-gray-700">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-black dark:text-white uppercase tracking-wider">
                                         Utilisateur
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-black dark:text-white uppercase tracking-wider">
                                         Rôle
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-black dark:text-white uppercase tracking-wider">
                                         Statut
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-black dark:text-white uppercase tracking-wider">
                                         Dernière connexion
                                     </th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    <th className="px-6 py-3 text-right text-xs font-semibold text-black dark:text-white uppercase tracking-wider">
                                         Actions
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+                            <tbody className="divide-y divide-gray-300 dark:divide-gray-700">
                                 {data.items.map((user) => (
-                                    <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-900">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center">
-                                                <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white font-medium">
+                                                <div className="w-10 h-10 bg-black dark:bg-white rounded-full flex items-center justify-center text-white dark:text-black font-medium">
                                                     {user.name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
                                                 </div>
                                                 <div className="ml-3">
-                                                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                                    <div className="text-sm font-medium text-black dark:text-white">
                                                         {user.name || 'Sans nom'}
                                                     </div>
-                                                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                                                    <div className="text-sm text-black dark:text-white">
                                                         {user.email}
                                                     </div>
                                                 </div>
@@ -309,23 +310,23 @@ export function UsersPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                user.role === 'Admin' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-                                                user.role === 'Editor' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                                                'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                                user.role === 'Admin' ? 'bg-black text-white dark:bg-white dark:text-black' :
+                                                user.role === 'Editor' ? 'bg-gray-400 text-black dark:bg-gray-600 dark:text-white' :
+                                                'bg-gray-200 text-black dark:bg-gray-800 dark:text-white'
                                             }`}>
                                                 {user.role}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                user.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                                                user.status === 'suspended' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-                                                'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                                                user.status === 'active' ? 'bg-black text-white dark:bg-white dark:text-black' :
+                                                user.status === 'suspended' ? 'bg-gray-400 text-black dark:bg-gray-600 dark:text-white' :
+                                                'bg-gray-200 text-black dark:bg-gray-800 dark:text-white'
                                             }`}>
                                                 {t(`status.${user.status}`)}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                                        <td className="px-6 py-4 text-sm text-black dark:text-white">
                                             {user.last_sign_in_at 
                                                 ? new Date(user.last_sign_in_at).toLocaleString()
                                                 : 'Jamais'
@@ -338,21 +339,24 @@ export function UsersPage() {
                                                     setShowEditModal(true)
                                                 }}
                                                 disabled={actionLoading === `update-${user.id}`}
-                                                className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 disabled:opacity-50"
+                                                className="text-black dark:text-white hover:text-gray-600 dark:hover:text-gray-400 disabled:opacity-50 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                                title={t('actions.edit')}
                                             >
-                                                {t('actions.edit')}
+                                                <PencilIcon className="w-4 h-4" />
                                             </button>
                                             <button
                                                 disabled={actionLoading === `reset-${user.id}`}
-                                                className="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 disabled:opacity-50"
+                                                className="text-black dark:text-white hover:text-gray-600 dark:hover:text-gray-400 disabled:opacity-50 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                                title={t('actions.reset_password')}
                                             >
-                                                {t('actions.reset_password')}
+                                                <TrashIcon className="w-4 h-4" />
                                             </button>
                                             <button
                                                 disabled={actionLoading === `activity-${user.id}`}
-                                                className="text-green-600 hover:text-green-900 dark:text-green-400 disabled:opacity-50"
+                                                className="text-black dark:text-white hover:text-gray-600 dark:hover:text-gray-400 disabled:opacity-50 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                                title={t('actions.view_activity')}
                                             >
-                                                {t('actions.view_activity')}
+                                                <EyeIcon className="w-4 h-4" />
                                             </button>
                                         </td>
                                     </tr>
@@ -368,8 +372,8 @@ export function UsersPage() {
             {/* Modales - identiques à avant */}
             {showCreateModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
-                        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+                    <div className="bg-white dark:bg-black rounded-lg p-6 w-full max-w-md border border-gray-300 dark:border-gray-700">
+                        <h3 className="text-lg font-semibold mb-4 text-black dark:text-white">
                             {t('create_user')}
                         </h3>
                         <form onSubmit={handleCreateUser} className="space-y-4">
@@ -378,7 +382,7 @@ export function UsersPage() {
                                 placeholder={t('form.name') + ' *'}
                                 value={newUser.name}
                                 onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
-                                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white"
                                 required
                             />
                             <input
@@ -386,7 +390,7 @@ export function UsersPage() {
                                 placeholder={t('form.email') + ' *'}
                                 value={newUser.email}
                                 onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
-                                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white"
                                 required
                             />
                             <input
@@ -394,13 +398,13 @@ export function UsersPage() {
                                 placeholder={t('form.password') + ' *'}
                                 value={newUser.password}
                                 onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
-                                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white"
                                 required
                             />
                             <select
                                 value={newUser.role}
                                 onChange={(e) => setNewUser(prev => ({ ...prev, role: e.target.value }))}
-                                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white"
                             >
                                 <option value="Viewer">Viewer</option>
                                 <option value="Editor">Editor</option>
@@ -410,14 +414,14 @@ export function UsersPage() {
                                 <button
                                     type="submit"
                                     disabled={actionLoading === 'create'}
-                                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                                    className="flex-1 px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 font-medium"
                                 >
                                     {actionLoading === 'create' ? t('form.creating') : t('form.save')}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setShowCreateModal(false)}
-                                    className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                                    className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-800 text-black dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700"
                                 >
                                     {t('form.cancel')}
                                 </button>
@@ -430,8 +434,8 @@ export function UsersPage() {
             {/* Modale d'édition */}
             {showEditModal && editingUser && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
-                        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+                    <div className="bg-white dark:bg-black rounded-lg p-6 w-full max-w-md border border-gray-300 dark:border-gray-700">
+                        <h3 className="text-lg font-semibold mb-4 text-black dark:text-white">
                             {t('edit_user')} - {editingUser.name || editingUser.email}
                         </h3>
                         <form onSubmit={(e) => {

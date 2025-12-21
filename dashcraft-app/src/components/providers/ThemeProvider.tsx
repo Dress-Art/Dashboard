@@ -1,9 +1,8 @@
 'use client'
 
-import {ThemeProvider as NextThemesProvider, useTheme} from 'next-themes'
-import {type ReactNode, useEffect} from 'react'
+import {useEffect} from 'react'
 import {useSelector} from 'react-redux'
-import type {RootState} from '@/store/store'
+import {type RootState} from '@/store/store'
 
 /**
  * ThemeProvider
@@ -11,7 +10,7 @@ import type {RootState} from '@/store/store'
  * et applique la classe "dark" sur <html>.
  */
 export interface ThemeProviderProps {
-    children: ReactNode
+    children: React.ReactNode
 }
 
 /**
@@ -21,25 +20,46 @@ export interface ThemeProviderProps {
  */
 function SyncThemeWithStore() {
     const mode = useSelector((s: RootState) => s.ui.themeMode)
-    const {setTheme} = useTheme()
 
     useEffect(() => {
-        if (!mode) return
-        setTheme(mode)
-    }, [mode, setTheme])
+        const root = document.documentElement
+        if (mode === 'dark') {
+            root.classList.add('dark')
+            localStorage.setItem('theme', 'dark')
+        } else {
+            root.classList.remove('dark')
+            localStorage.setItem('theme', 'light')
+        }
+    }, [mode])
 
     return null
 }
 
+// This is the script that will be injected into the <head> of the document.
+// It runs before any React rendering, preventing the flash of incorrect theme.
+const blockingThemeScript = `
+(function() {
+  try {
+    const theme = localStorage.getItem('theme');
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      // Default to light theme if no setting is found
+      document.documentElement.classList.remove('dark');
+    }
+  } catch (e) {
+    // If localStorage is not available, default to light theme
+    console.error('Could not set initial theme from localStorage', e);
+  }
+})();
+`
+
 export function ThemeProvider({children}: ThemeProviderProps) {
     return (
-        <NextThemesProvider
-            attribute='class'
-            defaultTheme='dark'
-            enableSystem
-        >
+        <>
+            <script dangerouslySetInnerHTML={{__html: blockingThemeScript}} />
             <SyncThemeWithStore />
             {children}
-        </NextThemesProvider>
+        </>
     )
 }

@@ -17,29 +17,19 @@ export interface DashboardLayoutProps {
 
 export function DashboardLayout({children}: DashboardLayoutProps) {
 	const dispatch = useDispatch()
-	const sidebarOpen = useSelector((s: RootState) => s.ui.sidebarOpen)
+	const isSidebarCollapsed = useSelector((s: RootState) => !s.ui.sidebarOpen)
 
 	const handleToggleSidebar = () => {
 		dispatch(toggleSidebar())
 	}
 
 	return (
-		<div
-			className={`min-h-screen grid grid-rows-[auto_1fr] ${
-				sidebarOpen ? 'md:grid-cols-[16rem_1fr]' : 'md:grid-cols-1'
-			}`}
-		>
-			<div className='md:col-span-2'>
+		<div className="min-h-screen bg-white dark:bg-black">
+			<Sidebar isCollapsed={isSidebarCollapsed} onToggle={handleToggleSidebar} />
+			<div className={`transition-all duration-300 ${isSidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
 				<Topbar />
+				<main className='p-6'>{children}</main>
 			</div>
-			<aside
-				className={sidebarOpen ? 'hidden md:block' : 'hidden'}
-				data-testid='sidebar-container'
-				aria-hidden={!sidebarOpen}
-			>
-				<Sidebar isCollapsed={!sidebarOpen} onToggle={handleToggleSidebar} />
-			</aside>
-			<main className='p-4'>{children}</main>
 		</div>
 	)
 }
