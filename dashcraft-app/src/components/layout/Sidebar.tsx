@@ -12,6 +12,7 @@ import {
   ArrowRightOnRectangleIcon,
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
+  IdentificationIcon,
 } from '@heroicons/react/24/outline'
 
 interface SidebarProps {
@@ -52,6 +53,13 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
       icon: TruckIcon,
       path: '/modules/delivery',
       description: 'Gestion des livraisons'
+    },
+    {
+      id: 'couturier',
+      title: 'Couturier',
+      icon: IdentificationIcon,
+      path: '/modules/couturier',
+      description: 'Gestion des clients couture'
     }
   ]
 

@@ -1,13 +1,13 @@
 'use client'
 
-import { useCallback, useTransition, useEffect } from 'react'
+import { useCallback, useTransition } from 'react'
 import { useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useDispatch, useSelector } from 'react-redux'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { setLocaleAction } from '@/app/actions/set-locale'
 import { type LocaleCode } from '@/config/i18n'
-import { setThemeMode, type ThemeMode } from '@/store/store'
+import { setThemeMode } from '@/store/store'
 import type { RootState } from '@/store/store'
 import { SunIcon, MoonIcon } from '@heroicons/react/24/outline'
 
@@ -52,11 +52,12 @@ export function Topbar() {
 				<button
 					onClick={handleToggleTheme}
 					className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+					style={{ color: 'var(--text-icon)' }}
 				>
 					{mode === 'dark' ? (
-						<SunIcon className="w-6 h-6 text-black dark:text-white" />
+						<SunIcon className="w-6 h-6" />
 					) : (
-						<MoonIcon className="w-6 h-6 text-black dark:text-white" />
+						<MoonIcon className="w-6 h-6" />
 					)}
 				</button>
 

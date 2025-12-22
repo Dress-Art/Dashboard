@@ -5,6 +5,7 @@ export type DashboardKey =
     | 'users'
     | 'agents'
     | 'delivery'
+    | 'couturier'
     | 'notifications'
     | 'emails'
     | 'feedbacks'
@@ -18,7 +19,7 @@ export type DashboardKey =
     | 'settings'
 
 export interface DashboardModule {
-    key: 'users' | 'agents' | 'delivery' | 'notifications' | 'emails' | 'payments' | 'feedbacks' | 'calendar' | 'subscriptions' | 'apis' | 'chats' | 'monitoring' | 'analytics' | 'languages' | 'settings'
+    key: 'users' | 'agents' | 'delivery' | 'couturier' | 'notifications' | 'emails' | 'payments' | 'feedbacks' | 'calendar' | 'subscriptions' | 'apis' | 'chats' | 'monitoring' | 'analytics' | 'languages' | 'settings'
     icon: IconName
     title: string
     description: string

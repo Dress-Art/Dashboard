@@ -2,6 +2,14 @@
 @tailwind utilities;
 @import "tailwindcss";
 
+:root {
+  --text-icon: #000000;
+}
+
+html.dark {
+  --text-icon: #ffffff;
+}
+
 html, body {
   background-color: #fff;
   color: #111827; /* Equivalent de text-gray-900 */

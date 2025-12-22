@@ -29,7 +29,8 @@ const defaultModuleVisibility: Record<DashboardKey, boolean> = {
     languages: true,
     settings: true,
     agents: false,
-    delivery: false
+    delivery: false,
+    couturier: false
 }
 
 const initialState: UiState = {
