@@ -3,7 +3,7 @@ import type {DashboardModule} from '@/types/dashboard'
 import {UsersPage} from '@/modules/users/UsersPage'
 import {AgentsPage} from '@/modules/agents/AgentsPage'
 import {DeliveryPage} from '@/modules/delivery/DeliveryPage'
-import {CoutureClientsPage} from '@/modules/couturier/CoutureClientsPage'
+import {CouturierModulePage} from '@/modules/couturier/CouturierModulePage'
 import {NotificationsPage} from '@/modules/notifications/NotificationsPage'
 import {EmailsPage} from '@/modules/emails/EmailsPage'
 import {PaymentsPage} from '@/modules/payments/PaymentsPage'
@@ -42,7 +42,7 @@ function renderModulePage(key: DashboardModule['key']) {
         case 'delivery':
             return <DeliveryPage />
         case 'couturier':
-            return <CoutureClientsPage />
+            return <CouturierModulePage />
         case 'notifications':
             return <NotificationsPage />
         case 'emails':

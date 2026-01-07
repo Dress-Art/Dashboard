@@ -110,6 +110,33 @@ class CoutureAPI {
             body: JSON.stringify({ id }),
         })
     }
+    async listModels(options: { search?: string } = {}) {
+        return this.makeRequest<{ models: any[], total: number }>('/pro-list-models', {
+            method: 'POST',
+            body: JSON.stringify({ query: options.search || '' })
+        })
+    }
+
+    async createModel(data: { name: string, description: string, price: number }) {
+        return this.makeRequest<any>('/pro-create-model', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        })
+    }
+
+    async listMeasurements(options: { search?: string } = {}) {
+        return this.makeRequest<{ measurements: any[], total: number }>('/pro-list-measurements', {
+            method: 'POST',
+            body: JSON.stringify({ query: options.search || '' })
+        })
+    }
+
+    async createMeasurement(data: { client_id: string, name: string, value: number, unit: string }) {
+        return this.makeRequest<any>('/pro-create-measurement', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        })
+    }
 }
 
 export const coutureAPI = new CoutureAPI()

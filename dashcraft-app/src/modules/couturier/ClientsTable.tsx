@@ -37,9 +37,9 @@ export function ClientsTable({
     
     const getStatusBadge = (status: string) => {
         const styles: Record<string, { bg: string; text: string }> = {
-            active: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300' },
-            inactive: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-700 dark:text-gray-300' },
-            suspended: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-300' }
+            active: { bg: 'bg-green-900/30', text: 'text-green-300' },
+            inactive: { bg: 'bg-gray-800', text: 'text-gray-300' },
+            suspended: { bg: 'bg-red-900/30', text: 'text-red-300' }
         }
         
         const style = styles[status] || styles.inactive
@@ -120,7 +120,7 @@ export function ClientsTable({
                                     <button
                                         onClick={() => onView?.(client)}
                                         disabled={loading || actionLoading === `view-${client.id}`}
-                                        className="p-2 text-black dark:text-white bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 disabled:opacity-50 transition-colors"
+                                        className="p-2 text-gray-400 hover:text-white bg-transparent rounded-lg disabled:opacity-50 transition-colors"
                                         title="Consulter"
                                     >
                                         <EyeIcon className="w-4 h-4" />
@@ -128,7 +128,7 @@ export function ClientsTable({
                                     <button
                                         onClick={() => onEdit?.(client)}
                                         disabled={loading || actionLoading === `edit-${client.id}`}
-                                        className="p-2 text-black dark:text-white bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 disabled:opacity-50 transition-colors"
+                                        className="p-2 text-gray-400 hover:text-white bg-transparent rounded-lg disabled:opacity-50 transition-colors"
                                         title="Modifier"
                                     >
                                         <PencilIcon className="w-4 h-4" />
@@ -136,7 +136,7 @@ export function ClientsTable({
                                     <button
                                         onClick={() => onDelete?.(client.id)}
                                         disabled={loading || actionLoading === `delete-${client.id}`}
-                                        className="p-2 text-black dark:text-white bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 disabled:opacity-50 transition-colors"
+                                        className="p-2 text-gray-400 hover:text-red-500 bg-transparent rounded-lg disabled:opacity-50 transition-colors"
                                         title="Supprimer"
                                     >
                                         <TrashIcon className="w-4 h-4" />
