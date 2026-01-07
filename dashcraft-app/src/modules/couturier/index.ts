@@ -1,2 +1,2 @@
-export { CoutureClientsPage } from './CoutureClientsPage'
+export { CouturierModulePage } from './CouturierModulePage'
 export { ClientsTable } from './ClientsTable'

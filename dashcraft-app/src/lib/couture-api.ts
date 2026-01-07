@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { supabase } from './supabase'
 
 const SUPABASE_FUNCTIONS_URL = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1`
@@ -22,7 +23,7 @@ interface ClientEntity {
 }
 
 class CoutureAPI {
-    private async makeRequest(endpoint: string, options: RequestInit = {}) {
+    private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
         try {
             const method = (options.method || 'POST') as 'GET' | 'POST' | 'PUT' | 'DELETE'
             
@@ -62,7 +63,7 @@ class CoutureAPI {
     }
 
     async listClients(params?: ListClientsParams) {
-        return this.makeRequest('/pro-list-clients', {
+        return this.makeRequest<{ clients: ClientEntity[], total: number }>('/pro-list-clients', {
             method: 'POST',
             body: JSON.stringify({ search: params?.search || '' }),
         })

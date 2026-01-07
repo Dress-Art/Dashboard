@@ -42,6 +42,7 @@ export function ClientsPage() {
         postal_code: ''
     })
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const translateError = (err: any): string => {
         if (err?.message?.includes('Failed to fetch') || err?.message?.includes('fetch')) {
             return 'Erreur de connexion réseau'
