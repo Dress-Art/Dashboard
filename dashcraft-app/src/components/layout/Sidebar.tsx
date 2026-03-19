@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { 
+import { useAuthContext } from '@/contexts/AuthContext'
+import {
   HomeIcon,
   UsersIcon,
   UserGroupIcon,
@@ -12,7 +12,7 @@ import {
   ArrowRightOnRectangleIcon,
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
-  IdentificationIcon,
+  ScissorsIcon,
 } from '@heroicons/react/24/outline'
 
 interface SidebarProps {
@@ -22,15 +22,16 @@ interface SidebarProps {
 
 export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const pathname = usePathname()
+  const { signOut } = useAuthContext()
 
-  const isActive = (path: string) => pathname.startsWith(path) && path !== '/dashboard' ? true : pathname === path
+  const isActive = (path: string) => path === '/' ? pathname === '/' : pathname.startsWith(path)
 
   const menuItems = [
     {
       id: 'dashboard',
       title: 'Tableau de bord',
       icon: HomeIcon,
-      path: '/dashboard',
+      path: '/',
       description: 'Vue d\'ensemble'
     },
     {
@@ -56,10 +57,10 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     },
     {
       id: 'couturier',
-      title: 'Couturier',
-      icon: IdentificationIcon,
+      title: 'Couture',
+      icon: ScissorsIcon,
       path: '/modules/couturier',
-      description: 'Gestion des clients couture'
+      description: 'Gestion de l\'atelier couture'
     }
   ]
 
@@ -125,6 +126,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           {!isCollapsed && <span className="ml-3 font-medium">Paramètres</span>}
         </Link>
         <button
+          onClick={() => signOut()}
           className="w-full flex items-center p-3 mt-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
         >
           <ArrowRightOnRectangleIcon className="w-6 h-6 flex-shrink-0" />
@@ -134,4 +136,3 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     </aside>
   )
 }
-// No new string, this will delete the matched text

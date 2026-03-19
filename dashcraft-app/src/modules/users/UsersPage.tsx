@@ -33,7 +33,11 @@ export function UsersPage() {
     // États pour les modales
     const [showCreateModal, setShowCreateModal] = useState(false)
     const [showEditModal, setShowEditModal] = useState(false)
+    const [showViewModal, setShowViewModal] = useState(false)
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [editingUser, setEditingUser] = useState<UserEntity | null>(null)
+    const [viewingUser, setViewingUser] = useState<UserEntity | null>(null)
+    const [deletingUser, setDeletingUser] = useState<UserEntity | null>(null)
     const [actionLoading, setActionLoading] = useState<string | null>(null)
 
     // Formulaire nouveau utilisateur
@@ -147,9 +151,27 @@ export function UsersPage() {
         }
     }
 
+    // SUPPRIMER UN UTILISATEUR
+    const handleDeleteUser = async (userId: string) => {
+        try {
+            setActionLoading(`delete-${userId}`)
+            setError(null)
+
+            await adminAPI.deleteUser(userId)
+
+            setShowDeleteConfirm(false)
+            setDeletingUser(null)
+            await loadUsers()
+
+        } catch (err) {
+            setError(translateError(err))
+        } finally {
+            setActionLoading(null)
+        }
+    }
+
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault()
-        // Pas besoin de reset de page
     }
 
     if (loading && !data) {
@@ -332,32 +354,41 @@ export function UsersPage() {
                                                 : 'Jamais'
                                             }
                                         </td>
-                                        <td className="px-6 py-4 text-right text-sm space-x-2">
-                                            <button
-                                                onClick={() => {
-                                                    setEditingUser(user)
-                                                    setShowEditModal(true)
-                                                }}
-                                                disabled={actionLoading === `update-${user.id}`}
-                                                className="text-black dark:text-white hover:text-gray-600 dark:hover:text-gray-400 disabled:opacity-50 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                                                title={t('actions.edit')}
-                                            >
-                                                <PencilIcon className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                disabled={actionLoading === `reset-${user.id}`}
-                                                className="text-black dark:text-white hover:text-gray-600 dark:hover:text-gray-400 disabled:opacity-50 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                                                title={t('actions.reset_password')}
-                                            >
-                                                <TrashIcon className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                disabled={actionLoading === `activity-${user.id}`}
-                                                className="text-black dark:text-white hover:text-gray-600 dark:hover:text-gray-400 disabled:opacity-50 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                                                title={t('actions.view_activity')}
-                                            >
-                                                <EyeIcon className="w-4 h-4" />
-                                            </button>
+                                        <td className="px-6 py-4 text-right text-sm">
+                                            <div className="flex justify-end gap-1">
+                                                <button
+                                                    onClick={() => {
+                                                        setViewingUser(user)
+                                                        setShowViewModal(true)
+                                                    }}
+                                                    className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                                    title="Voir les détails"
+                                                >
+                                                    <EyeIcon className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingUser(user)
+                                                        setShowEditModal(true)
+                                                    }}
+                                                    disabled={actionLoading === `update-${user.id}`}
+                                                    className="text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 disabled:opacity-50 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                                    title={t('actions.edit')}
+                                                >
+                                                    <PencilIcon className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setDeletingUser(user)
+                                                        setShowDeleteConfirm(true)
+                                                    }}
+                                                    disabled={actionLoading === `delete-${user.id}`}
+                                                    className="text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                                    title="Supprimer"
+                                                >
+                                                    <TrashIcon className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -433,8 +464,8 @@ export function UsersPage() {
 
             {/* Modale d'édition */}
             {showEditModal && editingUser && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white dark:bg-black rounded-lg p-6 w-full max-w-md border border-gray-300 dark:border-gray-700">
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+                    <div className="bg-white dark:bg-gray-900 rounded-lg p-6 w-full max-w-md border border-gray-300 dark:border-gray-700 shadow-xl">
                         <h3 className="text-lg font-semibold mb-4 text-black dark:text-white">
                             {t('edit_user')} - {editingUser.name || editingUser.email}
                         </h3>
@@ -453,12 +484,12 @@ export function UsersPage() {
                                 type="text"
                                 defaultValue={editingUser.name || ''}
                                 placeholder={t('form.name')}
-                                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white"
                             />
                             <select
                                 name="role"
                                 defaultValue={editingUser.role}
-                                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white"
                             >
                                 <option value="Viewer">Viewer</option>
                                 <option value="Editor">Editor</option>
@@ -467,7 +498,7 @@ export function UsersPage() {
                             <select
                                 name="status"
                                 defaultValue={editingUser.status}
-                                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white"
                             >
                                 <option value="active">{t('status.active')}</option>
                                 <option value="inactive">{t('status.inactive')}</option>
@@ -475,24 +506,113 @@ export function UsersPage() {
                             </select>
                             <div className="flex gap-2">
                                 <button
-                                    type="submit"
-                                    disabled={actionLoading === `update-${editingUser.id}`}
-                                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
-                                >
-                                    {actionLoading === `update-${editingUser.id}` ? t('form.updating') : t('form.save')}
-                                </button>
-                                <button
                                     type="button"
                                     onClick={() => {
                                         setShowEditModal(false)
                                         setEditingUser(null)
                                     }}
-                                    className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                                    className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-800 text-black dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700"
                                 >
                                     {t('form.cancel')}
                                 </button>
+                                <button
+                                    type="submit"
+                                    disabled={actionLoading === `update-${editingUser.id}`}
+                                    className="flex-1 px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 font-medium"
+                                >
+                                    {actionLoading === `update-${editingUser.id}` ? t('form.updating') : t('form.save')}
+                                </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modale de détails */}
+            {showViewModal && viewingUser && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+                    <div className="bg-white dark:bg-gray-900 rounded-lg p-6 w-full max-w-md border border-gray-300 dark:border-gray-700 shadow-xl">
+                        <h3 className="text-lg font-semibold mb-4 text-black dark:text-white">
+                            Détails de l&apos;utilisateur
+                        </h3>
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-4">
+                                <div className="w-14 h-14 bg-black dark:bg-white rounded-full flex items-center justify-center text-white dark:text-black text-xl font-bold">
+                                    {viewingUser.name?.[0]?.toUpperCase() || viewingUser.email[0].toUpperCase()}
+                                </div>
+                                <div>
+                                    <div className="text-lg font-semibold text-black dark:text-white">{viewingUser.name || 'Sans nom'}</div>
+                                    <div className="text-sm text-gray-500 dark:text-gray-400">{viewingUser.email}</div>
+                                </div>
+                            </div>
+                            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500 dark:text-gray-400">Rôle</span>
+                                    <span className="font-medium text-black dark:text-white">{viewingUser.role}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500 dark:text-gray-400">Statut</span>
+                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                        viewingUser.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                                        viewingUser.status === 'suspended' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                                        'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+                                    }`}>
+                                        {t(`status.${viewingUser.status}`)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500 dark:text-gray-400">Créé le</span>
+                                    <span className="text-black dark:text-white">{new Date(viewingUser.created_at).toLocaleDateString('fr-FR')}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500 dark:text-gray-400">Dernière connexion</span>
+                                    <span className="text-black dark:text-white">
+                                        {viewingUser.last_sign_in_at ? new Date(viewingUser.last_sign_in_at).toLocaleString('fr-FR') : 'Jamais'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => {
+                                setShowViewModal(false)
+                                setViewingUser(null)
+                            }}
+                            className="mt-6 w-full px-4 py-2 bg-gray-200 dark:bg-gray-800 text-black dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700 font-medium"
+                        >
+                            Fermer
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Modale de confirmation suppression */}
+            {showDeleteConfirm && deletingUser && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+                    <div className="bg-white dark:bg-gray-900 rounded-lg p-6 w-full max-w-sm border border-gray-300 dark:border-gray-700 shadow-xl">
+                        <h3 className="text-lg font-semibold mb-2 text-black dark:text-white">
+                            Confirmer la suppression
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-400 mb-6">
+                            Voulez-vous vraiment supprimer l&apos;utilisateur <strong className="text-black dark:text-white">{deletingUser.name || deletingUser.email}</strong> ? Cette action est irréversible.
+                        </p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => {
+                                    setShowDeleteConfirm(false)
+                                    setDeletingUser(null)
+                                }}
+                                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-800 text-black dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700 font-medium"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={() => handleDeleteUser(deletingUser.id)}
+                                disabled={actionLoading === `delete-${deletingUser.id}`}
+                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 font-medium"
+                            >
+                                {actionLoading === `delete-${deletingUser.id}` ? 'Suppression...' : 'Supprimer'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
