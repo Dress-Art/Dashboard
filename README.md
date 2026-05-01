@@ -35,7 +35,7 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
-## DashCraft – Documentation rapide
+## DressArt Dashboard – Documentation rapide
 
 ### Scripts
 - `npm run dev` démarre le serveur de dev (App Router)
@@ -71,5 +71,5 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 - Fichier central: `src/config/dashboard.json` (ordre/visibilité des modules)
 
 ### Dépannage
-- Avertissement lockfiles multiples: conservez `dashcraft-app/package-lock.json` et
-  supprimez les autres lockfiles parents pour éviter les warnings npm.
+- Avertissement lockfiles multiples: conservez le `package-lock.json` à la racine
+  et supprimez les autres lockfiles parents pour éviter les warnings npm.

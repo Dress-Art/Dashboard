@@ -63,7 +63,7 @@ export function Sidebar({isCollapsed, onToggle}: SidebarProps) {
                 } p-4 border-b border-gray-300 dark:border-gray-700 h-16 flex-shrink-0`}
             >
                 {!isCollapsed && (
-                    <h1 className='text-xl font-bold text-gray-900 dark:text-white'>DashCraft</h1>
+                    <h1 className='text-xl font-bold text-gray-900 dark:text-white'>DressArt</h1>
                 )}
                 <button
                     onClick={onToggle}

@@ -13,9 +13,15 @@ export interface ReduxProviderProps {
 	children: ReactNode
 }
 
+const STORAGE_KEY = 'dressart:ui'
+/** Ancienne clé (avant rebrand DashCraft → DressArt). Lue + supprimée à la
+ *  première hydratation pour ne pas perdre les préférences utilisateur. */
+const LEGACY_STORAGE_KEY = 'dashcraft:ui'
+
 /**
  * UiPersistenceGate
- * - Hydrate l'état UI depuis localStorage au montage
+ * - Hydrate l'état UI depuis localStorage au montage (avec fallback sur
+ *   l'ancienne clé pour migrer en transparence)
  * - Persiste les changements d'UI (thème, visibilité modules)
  */
 function UiPersistenceGate({children}: {children: ReactNode}) {
@@ -23,10 +29,19 @@ function UiPersistenceGate({children}: {children: ReactNode}) {
 	const ui = useSelector((s: RootState) => s.ui)
     const [hydrationDone, setHydrationDone] = useState(false)
 
-	// Hydratation initiale
+	// Hydratation initiale + migration depuis l'ancienne clé si nécessaire
 	useEffect(() => {
 		try {
-			const raw = localStorage.getItem('dashcraft:ui')
+			let raw = localStorage.getItem(STORAGE_KEY)
+			if (!raw) {
+				const legacy = localStorage.getItem(LEGACY_STORAGE_KEY)
+				if (legacy) {
+					raw = legacy
+					// Migrer puis supprimer l'ancienne clé
+					localStorage.setItem(STORAGE_KEY, legacy)
+					localStorage.removeItem(LEGACY_STORAGE_KEY)
+				}
+			}
 			if (raw) {
 				const parsed = JSON.parse(raw)
 				dispatch(hydrateUi(parsed))
@@ -48,7 +63,7 @@ function UiPersistenceGate({children}: {children: ReactNode}) {
 				themeMode: ui.themeMode,
 				moduleVisibility: ui.moduleVisibility,
 			}
-			localStorage.setItem('dashcraft:ui', JSON.stringify(payload))
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
 		} catch (err) {
 			void err
 			// ignore quota errors

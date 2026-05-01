@@ -43,7 +43,7 @@ describe('ApisWidget - debug states', () => {
 	})
 
 	it('force loading via localStorage: aria-busy true et message localisé', async () => {
-		window.localStorage.setItem('dashcraft.apisWidget.debug', 'loading')
+		window.localStorage.setItem('dressart.apisWidget.debug', 'loading')
 		renderWithProviders(<ApisWidget />)
 
 		const table = screen.getByRole('table', {name: 'APIs externes'})
@@ -62,7 +62,7 @@ describe('ApisWidget - debug states', () => {
 	})
 
 	it('force error via localStorage: aria-busy false et message localisé', async () => {
-		window.localStorage.setItem('dashcraft.apisWidget.debug', 'error')
+		window.localStorage.setItem('dressart.apisWidget.debug', 'error')
 		renderWithProviders(<ApisWidget />)
 
 		const table = screen.getByRole('table', {name: 'APIs externes'})
@@ -81,7 +81,7 @@ describe('ApisWidget - debug states', () => {
 	})
 
 	it('force empty via localStorage: aria-busy false et message localisé', async () => {
-		window.localStorage.setItem('dashcraft.apisWidget.debug', 'empty')
+		window.localStorage.setItem('dressart.apisWidget.debug', 'empty')
 		renderWithProviders(<ApisWidget />)
 
 		const table = screen.getByRole('table', {name: 'APIs externes'})

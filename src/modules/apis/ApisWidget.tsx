@@ -37,7 +37,7 @@ export function ApisWidget() {
 		try {
 			debug =
 				(typeof window !== 'undefined' &&
-					(window.localStorage.getItem('dashcraft.apisWidget.debug') ||
+					(window.localStorage.getItem('dressart.apisWidget.debug') ||
 						new URLSearchParams(window.location.search).get('apisDebug'))) ||
 				null
 		} catch {

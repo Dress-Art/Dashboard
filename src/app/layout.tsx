@@ -8,8 +8,8 @@ import {AppProviders} from '@/components/providers/AppProviders'
 const inter = Inter({subsets: ['latin']})
 
 export const metadata: Metadata = {
-	title: 'DashCraft',
-	description: 'Dashboard personnalisable',
+	title: 'DressArt',
+	description: 'Dashboard professionnel DressArt — couture, mesures, livraisons',
 }
 
 /**
