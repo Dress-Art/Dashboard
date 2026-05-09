@@ -29,6 +29,7 @@ export type IconName =
 	| 'user-group'
 	| 'truck'
 	| 'scissors'
+	| 'paper-airplane'
 	| 'swatch'
 
 const outlineMap: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> = {
@@ -55,6 +56,7 @@ const outlineMap: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> = {
 	truck: Outline.TruckIcon,
 	scissors: Outline.ScissorsIcon,
 	swatch: Outline.SwatchIcon,
+	'paper-airplane': Outline.PaperAirplaneIcon,
 }
 
 const solidMap: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> = {
@@ -81,6 +83,7 @@ const solidMap: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> = {
 	truck: Solid.TruckIcon,
 	scissors: Solid.ScissorsIcon,
 	swatch: Solid.SwatchIcon,
+	'paper-airplane': Solid.PaperAirplaneIcon,
 }
 
 /**

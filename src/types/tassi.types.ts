@@ -211,21 +211,14 @@ export interface TassiCreatePackageInput {
 }
 
 // =============================================================================
-// Webhooks (structure à confirmer — endpoint /webhooks renvoie 404 mais
-// la doc mentionne webhookGuideUrl. Probable : signature HMAC en header).
+// Webhooks : NON IMPLÉMENTÉS côté Tassi pour l'instant.
+//
+// La doc équipe Tassi mentionne un format webhook (tracking.updated /
+// shipment.delivered / shipment.exception, signature HMAC-SHA256 dans le
+// body), mais aucun endpoint webhook n'est exposé côté DressArt — l'intégration
+// se fait en polling via `/api/tassi/shipments/[id]` jusqu'à nouvel ordre.
+//
+// Si Tassi ship les webhooks, ré-ajouter `TassiWebhookEvent` ici + un handler
+// dans `src/app/api/webhooks/tassi/route.ts` (cf. git history pour l'ancien
+// scaffold).
 // =============================================================================
-
-export type TassiWebhookEventType =
-    | 'package.created'
-    | 'package.assigned'
-    | 'package.picked_up'
-    | 'package.in_transit'
-    | 'package.delivered'
-    | 'package.cancelled'
-    | 'package.returned'
-
-export interface TassiWebhookEvent<T = unknown> {
-    event: TassiWebhookEventType
-    delivered_at: string
-    data: T
-}

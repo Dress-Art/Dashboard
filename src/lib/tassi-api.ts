@@ -128,6 +128,15 @@ class TassiClient {
         return this.request('GET', `/packages/${id}`)
     }
 
+    /**
+     * GET /shipments/{id} — vocabulaire documenté pour les webhooks Tassi.
+     * Forme de réponse présumée identique à /packages/{id} (à ajuster si Tassi
+     * confirme un schéma différent).
+     */
+    async getShipment(id: number | string): Promise<{shipment: TassiPackage}> {
+        return this.request('GET', `/shipments/${encodeURIComponent(String(id))}`)
+    }
+
     async createPackage(input: TassiCreatePackageInput): Promise<{package: TassiPackage}> {
         return this.request('POST', '/packages', input)
     }

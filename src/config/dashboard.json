@@ -4,6 +4,7 @@
 		{"key": "tissus", "icon": "swatch", "visible": true, "order": 2, "category": "business", "roles": ["admin", "vendeur", "couturier"]},
 		{"key": "orders", "icon": "tag", "visible": true, "order": 3, "category": "business", "roles": ["admin", "couturier", "agent", "livreur"]},
 		{"key": "delivery", "icon": "truck", "visible": true, "order": 4, "category": "business", "roles": ["admin", "livreur"]},
+		{"key": "tassi", "icon": "paper-airplane", "visible": true, "order": 4.5, "category": "admin", "roles": ["admin"]},
 		{"key": "users", "icon": "users", "visible": true, "order": 5, "category": "admin", "roles": ["admin"]},
 		{"key": "analytics", "icon": "chart", "visible": true, "order": 6, "category": "core", "roles": ["admin"]},
 		{"key": "payments", "icon": "credit-card", "visible": true, "order": 7, "category": "business", "roles": ["admin"]},
