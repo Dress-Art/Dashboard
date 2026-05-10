@@ -12,6 +12,15 @@ import {
     ORDER_STATUS_LABELS_FR,
     NEXT_STATUS,
 } from '@/types/order.types'
+import {
+    getOrderTassiContext,
+    markConfectionCompleted,
+    type OrderTassiContext,
+} from '@/app/actions/tassi-orders'
+import {LaunchDeliveryButton} from '@/components/tassi/LaunchDeliveryButton'
+import {DeliveryStatusBadge} from '@/components/tassi/DeliveryStatusBadge'
+import {TrackingBadge} from '@/components/tassi/TrackingBadge'
+import {CheckCircleIcon} from '@heroicons/react/24/outline'
 
 interface Order {
     id: string
@@ -98,6 +107,186 @@ const STATUS_TABS: ReadonlyArray<{id: 'all' | OrderStatus; label: string}> = [
 /** États terminaux : pas de transitions possibles. */
 function isTerminal(status: OrderStatus): boolean {
     return status === 'delivered' || status === 'cancelled'
+}
+
+// =============================================================================
+// Bloc Livraison Tassi (one-click)
+// =============================================================================
+
+interface TassiDeliveryBlockProps {
+    orderId: string
+}
+
+function TassiDeliveryBlock({orderId}: TassiDeliveryBlockProps) {
+    const [ctx, setCtx] = useState<OrderTassiContext | null>(null)
+    const [loading, setLoading] = useState(false)
+    const [markingConfection, setMarkingConfection] = useState(false)
+
+    const load = useCallback(async () => {
+        setLoading(true)
+        try {
+            const result = await getOrderTassiContext(orderId)
+            setCtx(result)
+        } finally {
+            setLoading(false)
+        }
+    }, [orderId])
+
+    useEffect(() => {
+        load()
+    }, [load])
+
+    const handleToggleConfection = async () => {
+        if (!ctx) return
+        setMarkingConfection(true)
+        try {
+            const result = await markConfectionCompleted(orderId, !ctx.confection_completed_at)
+            if (!result.success) {
+                notify.error(`Confection : ${result.error ?? 'erreur'}`)
+                return
+            }
+            notify.success(
+                result.completed_at ? 'Confection marquée terminée' : 'Confection annulée',
+            )
+            await load()
+        } catch (err) {
+            notify.error(err)
+        } finally {
+            setMarkingConfection(false)
+        }
+    }
+
+    if (loading && !ctx) {
+        return (
+            <div className="mt-4 bg-gray-50 dark:bg-gray-900 rounded-xl p-3 text-sm text-gray-500 italic">
+                Chargement Tassi…
+            </div>
+        )
+    }
+    if (!ctx?.success) {
+        return (
+            <div className="mt-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 text-sm text-red-700 dark:text-red-300">
+                Tassi : {ctx?.error ?? 'erreur de chargement'}
+            </div>
+        )
+    }
+    const {
+        can_launch,
+        confection_completed_at,
+        missing_fields,
+        shipment,
+    } = ctx
+
+    return (
+        <div className="mt-4 bg-gray-50 dark:bg-gray-900 rounded-xl p-3 space-y-3">
+            <div className="flex items-center justify-between">
+                <p className="text-xs text-gray-400">Livraison Tassi</p>
+                {shipment && <DeliveryStatusBadge status={shipment.delivery_status} />}
+            </div>
+
+            {/* Étape 1 : confection terminée */}
+            {!shipment && (
+                <div className="flex items-center justify-between gap-3 bg-white dark:bg-black rounded-lg p-3">
+                    <div className="text-sm">
+                        <p className="font-medium text-black dark:text-white">Confection terminée ?</p>
+                        {confection_completed_at && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                Marqué le {new Date(confection_completed_at).toLocaleString('fr-FR')}
+                            </p>
+                        )}
+                    </div>
+                    {can_launch ? (
+                        <button
+                            onClick={handleToggleConfection}
+                            disabled={markingConfection}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1.5 ${
+                                confection_completed_at
+                                    ? 'border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                    : 'bg-green-600 text-white hover:bg-green-700'
+                            }`}
+                        >
+                            <CheckCircleIcon className="w-4 h-4" />
+                            {markingConfection
+                                ? '...'
+                                : confection_completed_at
+                                    ? 'Annuler'
+                                    : 'Marquer terminée'}
+                        </button>
+                    ) : (
+                        <span className="text-xs text-gray-400 italic">
+                            {confection_completed_at ? '✓ marquée' : 'à marquer par le couturier'}
+                        </span>
+                    )}
+                </div>
+            )}
+
+            {/* Étape 2 : bouton de lancement (si confection ok et pas encore lancée) */}
+            {!shipment && can_launch && (
+                <LaunchDeliveryButton
+                    orderId={orderId}
+                    confectionCompleted={Boolean(confection_completed_at)}
+                    shipmentAlreadyExists={false}
+                    missingFields={missing_fields}
+                    onSuccess={load}
+                />
+            )}
+
+            {/* Étape 3 : shipment existe → infos + tracking */}
+            {shipment && (
+                <div className="space-y-2 text-sm">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <TrackingBadge status={shipment.tassi_status} trackingUrl={shipment.tracking_url} />
+                        {shipment.carrier_code && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                                via {shipment.carrier_code}
+                            </span>
+                        )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="bg-white dark:bg-black rounded-lg px-3 py-1.5">
+                            <span className="text-gray-400">Tassi ID</span>
+                            <code className="block font-mono text-black dark:text-white truncate">
+                                {shipment.tassi_id}
+                            </code>
+                        </div>
+                        <div className="bg-white dark:bg-black rounded-lg px-3 py-1.5">
+                            <span className="text-gray-400">Créé le</span>
+                            <span className="block text-black dark:text-white">
+                                {new Date(shipment.created_at).toLocaleDateString('fr-FR')}
+                            </span>
+                        </div>
+                    </div>
+                    {shipment.couturier_notes && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400 italic bg-white dark:bg-black rounded-lg px-3 py-1.5">
+                            « {shipment.couturier_notes} »
+                        </p>
+                    )}
+                    <div className="flex gap-2 pt-1">
+                        {shipment.tracking_url && (
+                            <a
+                                href={shipment.tracking_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex-1 text-center px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-700 text-black dark:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                            >
+                                Suivre la livraison
+                            </a>
+                        )}
+                        {shipment.label_url && (
+                            <a
+                                href={shipment.label_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex-1 text-center px-3 py-1.5 text-xs font-medium bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200"
+                            >
+                                Étiquette PDF
+                            </a>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    )
 }
 
 interface MeasurementsBlockProps {
@@ -615,6 +804,9 @@ export function OrdersPage() {
                             measurements={selectedOrder.measurements}
                             onEdit={canEditMeasurements ? () => setEditingMeasurements(true) : undefined}
                         />
+
+                        {/* Bloc Livraison Tassi — confection terminée + lancement + badges */}
+                        <TassiDeliveryBlock orderId={selectedOrder.id} />
 
                         {/* Actions dans la modale (cachées en lecture seule) */}
                         {!isReadOnly && !isTerminal(selectedOrder.status) && (
