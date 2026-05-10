@@ -1,6 +1,6 @@
 'use client'
 
-import {useState, useEffect, useCallback, useMemo, useRef} from 'react'
+import {useState, useEffect, useCallback, useMemo} from 'react'
 import {adminAPI} from '@/lib/admin-api'
 import {notify} from '@/lib/toast'
 import {DeliveryTable, type DeliveryEntity} from './DeliveryTable'
@@ -10,67 +10,6 @@ import {
     DELIVERY_STATUS_LABELS_FR,
     isDeliveryTerminal,
 } from '@/types/delivery.types'
-import type {TassiPackage} from '@/types/tassi.types'
-import {createTassiShipmentForDelivery} from '@/app/actions/tassi-shipments'
-
-/**
- * Pattern d'URL publique de tracking Tassi. À ajuster côté env quand la doc
- * Tassi confirme le format. Placeholder `{tracking_number}` remplacé au render.
- */
-const TASSI_TRACKING_URL_PATTERN =
-    process.env.NEXT_PUBLIC_TASSI_TRACKING_URL ?? 'https://sandbox.tassi.pro/track/{tracking_number}'
-
-type TassiState = TassiPackage | 'loading' | 'error'
-
-/** Intervalle de polling pour rafraîchir les statuts Tassi non terminaux. */
-const TASSI_POLL_INTERVAL_MS = 60_000
-
-/** Statuts Tassi terminaux : on arrête de poller pour ces livraisons-là. */
-const TASSI_TERMINAL_STATUSES = new Set(['delivered', 'cancelled', 'returned'])
-
-function isTassiTerminal(state: TassiState | undefined): boolean {
-    if (!state || state === 'loading' || state === 'error') return false
-    return TASSI_TERMINAL_STATUSES.has(state.status)
-}
-
-/**
- * Récupère le statut Tassi de plusieurs livraisons en parallèle.
- * Limite à 8 calls concurrents pour éviter de saturer Tassi/notre proxy.
- * Match via `tassi_shipment_id` (format `shp_*`).
- */
-async function fetchTassiStatuses(
-    deliveries: DeliveryEntity[],
-): Promise<Record<string, TassiState>> {
-    const targets = deliveries.filter(d => d.tassi_shipment_id)
-    if (targets.length === 0) return {}
-
-    const results: Record<string, TassiState> = {}
-    const concurrency = 8
-    let cursor = 0
-
-    async function worker() {
-        while (cursor < targets.length) {
-            const i = cursor++
-            const d = targets[i]
-            try {
-                const res = await fetch(
-                    `/api/tassi/shipments/${encodeURIComponent(d.tassi_shipment_id!)}`,
-                    {cache: 'no-store'},
-                )
-                if (!res.ok) {
-                    results[d.id] = 'error'
-                    continue
-                }
-                const json = (await res.json()) as {package?: TassiPackage; shipment?: TassiPackage}
-                results[d.id] = (json.package ?? json.shipment) as TassiPackage
-            } catch {
-                results[d.id] = 'error'
-            }
-        }
-    }
-    await Promise.all(Array.from({length: Math.min(concurrency, targets.length)}, worker))
-    return results
-}
 
 type FilterTab = 'all' | DeliveryStatus
 
@@ -109,15 +48,6 @@ export function DeliveryPage() {
     const [availableDrivers, setAvailableDrivers] = useState<Array<{id: string; name: string; email: string}>>([])
     const [assignForm, setAssignForm] = useState<AssignFormState>(EMPTY_ASSIGN_FORM)
 
-    /** Statuts Tassi live indexés par delivery.id (résolus en parallèle après load). */
-    const [tassiByDeliveryId, setTassiByDeliveryId] = useState<Record<string, TassiState>>({})
-
-    /** Ref miroir pour que le polling lise toujours le dernier state sans re-créer l'interval. */
-    const tassiByDeliveryIdRef = useRef(tassiByDeliveryId)
-    useEffect(() => {
-        tassiByDeliveryIdRef.current = tassiByDeliveryId
-    }, [tassiByDeliveryId])
-
     // Charger les livreurs disponibles (1 fois au montage)
     useEffect(() => {
         adminAPI.getAvailableDrivers()
@@ -148,60 +78,6 @@ export function DeliveryPage() {
     useEffect(() => {
         loadDeliveries()
     }, [loadDeliveries])
-
-    // Quand la liste change, refetch les statuts Tassi en parallèle.
-    // Marque d'abord toutes les cibles en 'loading' pour feedback immédiat.
-    useEffect(() => {
-        const items = data?.items ?? []
-        const targets = items.filter(d => d.tassi_shipment_id)
-        if (targets.length === 0) {
-            setTassiByDeliveryId({})
-            return
-        }
-        const initial: Record<string, TassiState> = {}
-        for (const d of targets) initial[d.id] = 'loading'
-        setTassiByDeliveryId(initial)
-
-        let cancelled = false
-        fetchTassiStatuses(targets).then(map => {
-            if (!cancelled) setTassiByDeliveryId(map)
-        })
-        return () => {
-            cancelled = true
-        }
-    }, [data])
-
-    /**
-     * Polling Tassi : toutes les TASSI_POLL_INTERVAL_MS, on rafraîchit les
-     * statuts des livraisons non terminales. Skip quand l'onglet est masqué.
-     * Le ref `tassiByDeliveryIdRef` évite de recréer l'interval à chaque update.
-     */
-    useEffect(() => {
-        const items = data?.items ?? []
-        const allTargets = items.filter(d => d.tassi_shipment_id)
-        if (allTargets.length === 0) return
-
-        let cancelled = false
-
-        const tick = async () => {
-            if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
-
-            const current = tassiByDeliveryIdRef.current
-            const stillPolling = allTargets.filter(d => !isTassiTerminal(current[d.id]))
-            if (stillPolling.length === 0) return
-
-            const map = await fetchTassiStatuses(stillPolling)
-            if (!cancelled && Object.keys(map).length > 0) {
-                setTassiByDeliveryId(prev => ({...prev, ...map}))
-            }
-        }
-
-        const interval = setInterval(tick, TASSI_POLL_INTERVAL_MS)
-        return () => {
-            cancelled = true
-            clearInterval(interval)
-        }
-    }, [data])
 
     // Filtre + counts dérivés
     const filtered = useMemo(() => {
@@ -260,38 +136,6 @@ export function DeliveryPage() {
     }
 
     // Handler "étape suivante" : assigned → picked_up → in_transit → delivered
-    /**
-     * Envoie une livraison à Tassi (POST /packages côté Tassi via server action).
-     * Idempotent : si déjà liée, le server action renvoie `already_linked`.
-     */
-    const handleSendToTassi = async (delivery: DeliveryEntity) => {
-        try {
-            setActionLoading(`tassi-${delivery.id}`)
-            const result = await createTassiShipmentForDelivery(delivery.id)
-            if (!result.success) {
-                if (result.error === 'already_linked') {
-                    notify.info('Déjà liée à Tassi', `Shipment ${result.tassi_shipment_id ?? '?'}`)
-                } else if (result.error === 'tassi_api_error') {
-                    notify.error('Erreur Tassi', 'Vérifie les logs serveur (clé API + body de la requête).')
-                } else {
-                    notify.error(`Échec création Tassi : ${result.error}`)
-                }
-                return
-            }
-            notify.success(
-                `Tassi : colis créé`,
-                result.tassi_tracking_number
-                    ? `Tracking ${result.tassi_tracking_number}`
-                    : `Shipment ${result.tassi_shipment_id ?? result.tassi_package_id ?? '?'}`,
-            )
-            await loadDeliveries()
-        } catch (err) {
-            notify.error(err)
-        } finally {
-            setActionLoading(null)
-        }
-    }
-
     const handleAdvance = async (delivery: DeliveryEntity, next: DeliveryStatus) => {
         try {
             setActionLoading(`advance-${delivery.id}`)
@@ -420,10 +264,7 @@ export function DeliveryPage() {
                         onAssign={openAssignModal}
                         onAdvance={handleAdvance}
                         onCancel={handleCancel}
-                        onSendToTassi={handleSendToTassi}
                         actionLoading={actionLoading}
-                        tassiByDeliveryId={tassiByDeliveryId}
-                        tassiTrackingUrlPattern={TASSI_TRACKING_URL_PATTERN}
                     />
                 </div>
             </div>

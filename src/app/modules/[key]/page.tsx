@@ -4,7 +4,6 @@ import {UsersPage} from '@/modules/users/UsersPage'
 import {DeliveryPage} from '@/modules/delivery/DeliveryPage'
 import {CouturierModulePage} from '@/modules/couturier/CouturierModulePage'
 import {TissusPage} from '@/modules/tissus/TissusPage'
-import {TassiConfigPage} from '@/modules/tassi/TassiConfigPage'
 import {NotificationsPage} from '@/modules/notifications/NotificationsPage'
 import {EmailsPage} from '@/modules/emails/EmailsPage'
 import {PaymentsPage} from '@/modules/payments/PaymentsPage'
@@ -47,8 +46,6 @@ function renderModulePage(key: DashboardModule['key']) {
             return <CouturierModulePage />
         case 'tissus':
             return <TissusPage />
-        case 'tassi':
-            return <TassiConfigPage />
         case 'notifications':
             return <NotificationsPage />
         case 'emails':
