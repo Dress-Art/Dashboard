@@ -24,16 +24,22 @@ interface ClientEntity {
 
 class CoutureAPI {
     private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-        try {
-            const method = (options.method || 'POST') as 'GET' | 'POST' | 'PUT' | 'DELETE'
-            
-            const { data: { session } } = await supabase.auth.getSession()
-            
-            if (!session?.access_token) {
-                throw new Error('Session requise. Veuillez vous connecter.')
-            }
+        if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+            throw new Error(
+                'NEXT_PUBLIC_SUPABASE_URL absente — vérifie .env.local et redémarre le serveur.',
+            )
+        }
 
-            const response = await fetch(`${SUPABASE_FUNCTIONS_URL}${endpoint}`, {
+        const url = `${SUPABASE_FUNCTIONS_URL}${endpoint}`
+        const {data: {session}} = await supabase.auth.getSession()
+
+        if (!session?.access_token) {
+            throw new Error('Session requise. Veuillez vous reconnecter.')
+        }
+
+        let response: Response
+        try {
+            response = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${session.access_token}`,
                     'Content-Type': 'application/json',
@@ -42,24 +48,30 @@ class CoutureAPI {
                 },
                 ...options,
             })
-
-            if (!response.ok) {
-                const errorText = await response.text()
-                let errorMessage
-                try {
-                    const errorData = JSON.parse(errorText)
-                    errorMessage = errorData.error || errorData.message || 'Erreur inconnue'
-                } catch {
-                    errorMessage = errorText || `Erreur HTTP: ${response.status}`
-                }
-                throw new Error(errorMessage)
-            }
-
-            return response.json()
-        } catch (error) {
-            console.error(`Erreur appel API ${endpoint}:`, error)
-            throw error
+        } catch (err) {
+            // "Failed to fetch" = échec réseau (CORS, DNS, function absente,
+            // mixed content…). Le browser ne donne pas le détail — on remonte
+            // l'URL pour faciliter le debug côté Edge Function Supabase.
+            console.error(`[couture-api] fetch network error on ${url}`, err)
+            throw new Error(
+                `Edge Function inaccessible: ${url}. Cause probable : la function n'est pas déployée sur Supabase, ou bloquée par CORS. Vérifie dans Supabase Studio → Edge Functions.`,
+            )
         }
+
+        if (!response.ok) {
+            const errorText = await response.text()
+            let errorMessage
+            try {
+                const errorData = JSON.parse(errorText)
+                errorMessage = errorData.error || errorData.message || 'Erreur inconnue'
+            } catch {
+                errorMessage = errorText || `Erreur HTTP: ${response.status}`
+            }
+            console.error(`[couture-api] HTTP ${response.status} on ${url}: ${errorMessage}`)
+            throw new Error(errorMessage)
+        }
+
+        return response.json()
     }
 
     async listClients(params?: ListClientsParams) {
