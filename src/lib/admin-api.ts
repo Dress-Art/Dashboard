@@ -88,9 +88,25 @@ export class AdminAPI {
         role?: string
         status?: string
     }) {
+        // Aligné sur l'Edge Function `admin-update-user` réelle :
+        //   - méthode POST (PUT renvoie 405)
+        //   - identifiant en `id` (pas `userId`)
+        //   - name/role/status doivent passer dans `user_metadata`
+        //   - email reste top-level
+        // Le rôle est lu côté front via `getUserRole()` qui fallback sur
+        // `user_metadata.role` quand `app_metadata.role` est absent.
+        const userMetadata: Record<string, string> = {}
+        if (updates.name !== undefined) userMetadata.name = updates.name
+        if (updates.role !== undefined) userMetadata.role = updates.role
+        if (updates.status !== undefined) userMetadata.status = updates.status
+
+        const body: Record<string, unknown> = {id: userId}
+        if (updates.email !== undefined) body.email = updates.email
+        if (Object.keys(userMetadata).length > 0) body.user_metadata = userMetadata
+
         return this.makeRequest('/admin-update-user', {
-            method: 'PUT',
-            body: JSON.stringify({ userId, ...updates }),
+            method: 'POST',
+            body: JSON.stringify(body),
         })
     }
 
