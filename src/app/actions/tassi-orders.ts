@@ -1,6 +1,7 @@
 'use server'
 
 import {createSupabaseServerClient} from '@/lib/supabase/server'
+import {createSupabaseServiceClient} from '@/lib/supabase/service'
 import {getUserRole, isProfessionalRole, type Role} from '@/lib/roles'
 import {collectMissingFields, type ClientDelivery, type CouturierShop} from '@/services/shipments.service'
 import type {DeliveryStatus} from '@/lib/tassi/poll-status'
@@ -52,8 +53,9 @@ interface AuthShop {
  * `orderId` = `orders.id` (uuid).
  */
 export async function getOrderTassiContext(orderId: string): Promise<OrderTassiContext> {
-    const supabase = await createSupabaseServerClient()
-    const {data: {user}} = await supabase.auth.getUser()
+    // Auth + check rôle avec la session de l'appelant
+    const sessionClient = await createSupabaseServerClient()
+    const {data: {user}} = await sessionClient.auth.getUser()
     if (!user) {
         return {
             success: false,
@@ -77,6 +79,11 @@ export async function getOrderTassiContext(orderId: string): Promise<OrderTassiC
             shipment: null,
         }
     }
+
+    // Les lectures métier passent par le service role pour bypasser les RLS
+    // (notamment `orders` qui est typiquement restreinte à `user_id = auth.uid()`).
+    // C'est safe : on a déjà gate par `isProfessionalRole` ci-dessus.
+    const supabase = createSupabaseServiceClient()
 
     // Order
     const {data: order, error: orderErr} = await supabase
@@ -203,13 +210,16 @@ export async function markConfectionCompleted(
     orderId: string,
     completed: boolean,
 ): Promise<MarkConfectionResult> {
-    const supabase = await createSupabaseServerClient()
-    const {data: {user}} = await supabase.auth.getUser()
+    const sessionClient = await createSupabaseServerClient()
+    const {data: {user}} = await sessionClient.auth.getUser()
     if (!user) return {success: false, error: 'unauthorized'}
     const role = getUserRole(user)
     if (role !== 'admin' && role !== 'couturier') {
         return {success: false, error: 'forbidden'}
     }
+
+    // Bypass RLS pour la lecture/update de `orders` — ownership re-vérifié ci-dessous.
+    const supabase = createSupabaseServiceClient()
 
     // Récupérer le couturier de la commande pour vérifier ownership
     if (role === 'couturier') {

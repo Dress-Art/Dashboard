@@ -11,7 +11,7 @@ import {
     type OrderForBuild,
 } from '@/services/shipments.service'
 import {assertCanLaunchDelivery, getProSession, HttpError} from '@/lib/auth/guards'
-import {createSupabaseServerClient} from '@/lib/supabase/server'
+import {createSupabaseServiceClient} from '@/lib/supabase/service'
 
 /**
  * `POST /api/tassi/shipments` — création one-click.
@@ -47,7 +47,10 @@ export async function POST(req: NextRequest) {
     try {
         const session = await getProSession()
         const body = InputSchema.parse(await req.json())
-        const supabase = await createSupabaseServerClient()
+        // Service role : la garde `assertCanLaunchDelivery` + `getProSession()`
+        // valident l'identité et le rôle. Pour les lectures (orders, modeles,
+        // auth.admin.getUserById) et l'insert (tassi_shipments), on bypass RLS.
+        const supabase = createSupabaseServiceClient()
 
         // 1. Charger la commande (avec couturier_id, agent_id, confection)
         const {data: orderRow, error: orderErr} = await supabase

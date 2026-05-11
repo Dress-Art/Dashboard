@@ -1,6 +1,7 @@
 import 'server-only'
 
 import {createSupabaseServerClient} from '@/lib/supabase/server'
+import {createSupabaseServiceClient} from '@/lib/supabase/service'
 import {getUserRole, type Role} from '@/lib/roles'
 
 /**
@@ -62,8 +63,9 @@ export async function assertCanLaunchDelivery(
         throw new HttpError(409, 'CONFECTION_NOT_COMPLETED')
     }
 
-    // Anti-doublon : un seul shipment Tassi par commande
-    const supabase = await createSupabaseServerClient()
+    // Anti-doublon : un seul shipment Tassi par commande.
+    // Service role pour bypass les RLS (l'auth a déjà été vérifiée via la session).
+    const supabase = createSupabaseServiceClient()
     const {data: existing} = await supabase
         .from('tassi_shipments')
         .select('id')
