@@ -30,18 +30,13 @@ import {createSupabaseServiceClient} from '@/lib/supabase/service'
 export const runtime = 'nodejs'
 
 const InputSchema = z.object({
-    orderId: z.string().uuid(),
+    orderId: z.uuid(),
     notes: z.string().max(500).optional(),
 })
 
-interface AuthUserMetadataShop {
-    name?: string
-    phone?: string
-    address_line1?: string
-    address_city?: string
-    address_zip?: string
-    address_country?: string
-}
+// NB : on lit désormais le shop depuis `professional_profiles`, plus depuis
+// `auth.users.app_metadata.shop` (cf. fix bug d'ID croisé). L'ancienne
+// interface AuthUserMetadataShop a été retirée.
 
 export async function POST(req: NextRequest) {
     try {
@@ -65,42 +60,57 @@ export async function POST(req: NextRequest) {
             throw new HttpError(404, 'ORDER_NOT_FOUND')
         }
 
-        // Notre `orders` n'a pas de `couturier_id` direct (cf. mémoire projet :
-        // couturier implicite via modeles.professional_id). Pour le MVP Tassi
-        // on fait la jointure ici.
+        // Chaîne de résolution couturier :
+        //   orders.model_id → modeles.professional_id (= professional_profiles.id)
+        //                  → professional_profiles.user_id (= auth.users.id)
+        // On stocke `couturier_id` côté tassi_shipments en `auth.users.id`
+        // (couturierUserId) pour rester cohérent avec les FK.
         const {data: modelRow} = await supabase
             .from('orders')
             .select('model_id, modeles:model_id(professional_id)')
             .eq('id', body.orderId)
-            .maybeSingle<{model_id: string | null; modeles: {professional_id: string} | null}>()
+            .maybeSingle<{
+                model_id: string | null
+                modeles: {professional_id: string | null} | null
+            }>()
 
-        const couturierId = modelRow?.modeles?.professional_id ?? null
-        if (!couturierId) {
+        const professionalProfileId = modelRow?.modeles?.professional_id ?? null
+        if (!professionalProfileId) {
             throw new HttpError(409, 'NO_COUTURIER_LINKED')
         }
 
+        const {data: profile, error: profileErr} = await supabase
+            .from('professional_profiles')
+            .select('user_id, business_name, phone_number, workshop_address, workshop_city, workshop_country')
+            .eq('id', professionalProfileId)
+            .maybeSingle<{
+                user_id: string
+                business_name: string | null
+                phone_number: string | null
+                workshop_address: string | null
+                workshop_city: string | null
+                workshop_country: string | null
+            }>()
+        if (profileErr || !profile) {
+            throw new HttpError(409, 'COUTURIER_PROFILE_NOT_FOUND')
+        }
+        const couturierUserId = profile.user_id
+
         const orderForGuard: OrderForBuild & {agent_id: string | null} = {
             id: orderRow.id,
-            couturier_id: couturierId,
+            couturier_id: couturierUserId,
             agent_id: orderRow.agent_id ?? null,
             couturier_confection_completed_at: orderRow.couturier_confection_completed_at,
         }
         await assertCanLaunchDelivery(session, orderForGuard)
 
-        // 2. Charger les profils couturier + client
-        const {data: {user: couturierUser}, error: couturierErr} = await supabase.auth
-            .admin.getUserById(couturierId)
-        if (couturierErr || !couturierUser) {
-            throw new HttpError(500, 'COUTURIER_LOAD_FAILED')
-        }
-        const shopMeta = (couturierUser.app_metadata as {shop?: AuthUserMetadataShop} | null)?.shop ?? {}
         const couturier: CouturierShop = {
-            name: shopMeta.name ?? null,
-            phone: shopMeta.phone ?? couturierUser.phone ?? null,
-            address_line1: shopMeta.address_line1 ?? null,
-            address_city: shopMeta.address_city ?? null,
-            address_zip: shopMeta.address_zip ?? null,
-            address_country: shopMeta.address_country ?? null,
+            name: profile.business_name,
+            phone: profile.phone_number,
+            address_line1: profile.workshop_address,
+            address_city: profile.workshop_city,
+            address_zip: null,
+            address_country: profile.workshop_country,
         }
 
         // Le client : on privilégie les snapshots `orders.customer_*` (spec : snapshot
@@ -129,7 +139,7 @@ export async function POST(req: NextRequest) {
             tassi_id: shipment.id,
             client_reference: orderForGuard.id,
             order_id: orderForGuard.id,
-            couturier_id: couturierId,
+            couturier_id: couturierUserId,
             agent_id: orderForGuard.agent_id,
             created_by_user_id: session.userId,
             created_by_role: session.role,

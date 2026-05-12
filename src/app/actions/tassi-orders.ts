@@ -105,18 +105,15 @@ export async function getOrderTassiContext(orderId: string): Promise<OrderTassiC
         }
     }
 
-    // Couturier implicite via modeles.professional_id
-    let couturierId: string | null = null
-    if (order.model_id) {
-        const {data: modele} = await supabase
-            .from('modeles')
-            .select('professional_id')
-            .eq('id', order.model_id)
-            .maybeSingle<{professional_id: string | null}>()
-        couturierId = modele?.professional_id ?? null
-    }
-
-    // Charger le shop du couturier (depuis app_metadata.shop)
+    // Chaîne de résolution couturier (vraie architecture DressArt) :
+    //   orders.model_id → modeles.professional_id (uuid professional_profiles)
+    //                  → professional_profiles.user_id (uuid auth.users)
+    //
+    // Le `couturierUserId` (auth.users.id) est ce qu'on stocke comme
+    // `tassi_shipments.couturier_id` et qu'on compare au `session.userId`
+    // pour les checks d'ownership couturier.
+    let professionalProfileId: string | null = null
+    let couturierUserId: string | null = null
     let couturierShop: CouturierShop = {
         name: null,
         phone: null,
@@ -125,17 +122,38 @@ export async function getOrderTassiContext(orderId: string): Promise<OrderTassiC
         address_zip: null,
         address_country: null,
     }
-    if (couturierId) {
-        const {data: {user: couturierUser}} = await supabase.auth.admin.getUserById(couturierId)
-        if (couturierUser) {
-            const shop = (couturierUser.app_metadata as {shop?: AuthShop} | null)?.shop ?? {}
+
+    if (order.model_id) {
+        const {data: modele} = await supabase
+            .from('modeles')
+            .select('professional_id')
+            .eq('id', order.model_id)
+            .maybeSingle<{professional_id: string | null}>()
+        professionalProfileId = modele?.professional_id ?? null
+    }
+
+    if (professionalProfileId) {
+        const {data: profile} = await supabase
+            .from('professional_profiles')
+            .select('user_id, business_name, phone_number, workshop_address, workshop_city, workshop_country')
+            .eq('id', professionalProfileId)
+            .maybeSingle<{
+                user_id: string
+                business_name: string | null
+                phone_number: string | null
+                workshop_address: string | null
+                workshop_city: string | null
+                workshop_country: string | null
+            }>()
+        if (profile) {
+            couturierUserId = profile.user_id
             couturierShop = {
-                name: shop.name ?? null,
-                phone: shop.phone ?? couturierUser.phone ?? null,
-                address_line1: shop.address_line1 ?? null,
-                address_city: shop.address_city ?? null,
-                address_zip: shop.address_zip ?? null,
-                address_country: shop.address_country ?? null,
+                name: profile.business_name,
+                phone: profile.phone_number,
+                address_line1: profile.workshop_address,
+                address_city: profile.workshop_city,
+                address_zip: null,
+                address_country: profile.workshop_country,
             }
         }
     }
@@ -170,15 +188,16 @@ export async function getOrderTassiContext(orderId: string): Promise<OrderTassiC
             created_at: string
         }>()
 
-    // Droit d'agir
-    const canLaunch = decideCanLaunch(role, user.id, couturierId, order.agent_id ?? null)
+    // Droit d'agir — ownership comparé sur l'auth.users.id (couturierUserId),
+    // pas sur professional_profiles.id.
+    const canLaunch = decideCanLaunch(role, user.id, couturierUserId, order.agent_id ?? null)
 
     return {
         success: true,
         can_launch: canLaunch,
         confection_completed_at: order.couturier_confection_completed_at,
         missing_fields: missing,
-        couturier_id: couturierId,
+        couturier_id: couturierUserId,
         shipment: shipmentRow ?? null,
     }
 }
@@ -186,12 +205,12 @@ export async function getOrderTassiContext(orderId: string): Promise<OrderTassiC
 function decideCanLaunch(
     role: Role | null,
     userId: string,
-    couturierId: string | null,
+    couturierUserId: string | null,
     agentId: string | null,
 ): boolean {
     if (!role) return false
     if (role === 'admin') return true
-    if (role === 'couturier') return couturierId === userId
+    if (role === 'couturier') return couturierUserId === userId
     if (role === 'agent') return agentId === userId
     return false
 }
@@ -221,15 +240,29 @@ export async function markConfectionCompleted(
     // Bypass RLS pour la lecture/update de `orders` — ownership re-vérifié ci-dessous.
     const supabase = createSupabaseServiceClient()
 
-    // Récupérer le couturier de la commande pour vérifier ownership
+    // Vérifier ownership : il faut déréférencer
+    //   orders.model_id → modeles.professional_id (professional_profiles.id)
+    //                  → professional_profiles.user_id (auth.users.id)
+    // pour comparer avec `user.id`.
     if (role === 'couturier') {
-        const {data: order} = await supabase
+        const {data: orderModel} = await supabase
             .from('orders')
             .select('model_id, modeles:model_id(professional_id)')
             .eq('id', orderId)
-            .maybeSingle<{model_id: string | null; modeles: {professional_id: string} | null}>()
-        const couturierId = order?.modeles?.professional_id ?? null
-        if (couturierId !== user.id) {
+            .maybeSingle<{
+                model_id: string | null
+                modeles: {professional_id: string | null} | null
+            }>()
+        const professionalProfileId = orderModel?.modeles?.professional_id ?? null
+        if (!professionalProfileId) {
+            return {success: false, error: 'no_couturier_linked'}
+        }
+        const {data: profile} = await supabase
+            .from('professional_profiles')
+            .select('user_id')
+            .eq('id', professionalProfileId)
+            .maybeSingle<{user_id: string}>()
+        if (!profile || profile.user_id !== user.id) {
             return {success: false, error: 'not_your_order'}
         }
     }
