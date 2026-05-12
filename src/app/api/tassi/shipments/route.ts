@@ -125,14 +125,56 @@ export async function POST(req: NextRequest) {
             address_country: 'BJ',
         }
 
-        // 3. Construire le payload via le service
-        const payload = buildShipmentPayloadFromOrder(orderForGuard, couturier, client, {
-            notes: body.notes,
-        })
+        // 3. Construire le payload pour `.pro/packages` (format réel observé).
+        //
+        // La spec officielle Tassi décrit un format imbriqué
+        // ({parcel, origin, destination, mode, client_reference, ...}) qui
+        // correspond à `.com/v1/shipments` (n'existe pas en DNS). L'endpoint
+        // live `.pro/packages` attend un format plat avec :
+        //   - customer (FK ou inline ?)
+        //   - weight (number, top-level)
+        //   + d'autres champs à découvrir au fil des erreurs 400.
+        //
+        // Phase 1 (current) : on tente avec `customer` INLINE pour voir si
+        // Tassi auto-crée le customer. Si on récupère encore "Customer doit
+        // exister", on bascule sur findOrCreateCustomer en Phase 2.
+        const nameParts = (client.full_name ?? '').trim().split(/\s+/)
+        const firstName = nameParts[0] || 'Client'
+        const lastName = nameParts.slice(1).join(' ') || ''
+        const weight = Number(process.env.DRESSART_PARCEL_DEFAULT_WEIGHT_KG ?? 1.0)
+
+        // Construire aussi le payload SPEC pour validation interne + debug
+        // (sans l'envoyer à Tassi — c'est pour vérifier que nos données sont OK).
+        try {
+            buildShipmentPayloadFromOrder(orderForGuard, couturier, client, {notes: body.notes})
+        } catch (specErr) {
+            if (specErr instanceof ShipmentBuildError) {
+                throw specErr
+            }
+        }
+
+        const packagePayload = {
+            customer: {
+                phone_number: client.phone,
+                first_name: firstName,
+                last_name: lastName,
+                email: orderRow.customer_email ?? undefined,
+            },
+            weight,
+            description: `Tenue Dress Art - Commande #${orderForGuard.id}`,
+            external_id: orderForGuard.id,
+            ...(body.notes ? {notes: body.notes} : {}),
+        }
+        console.log('[POST /api/tassi/shipments] payload .pro/packages:', JSON.stringify(packagePayload))
 
         // 4. POST Tassi avec idempotency
         const idempotencyKey = randomUUID()
-        const {data: shipment} = await tassi.shipments.create(payload, {idempotencyKey})
+        // On utilise le client `tassi.shipments.create` mais en passant le
+        // payload .pro/packages directement (le client envoie tel quel).
+        const {data: shipment} = await tassi.shipments.create(
+            packagePayload as unknown as Parameters<typeof tassi.shipments.create>[0],
+            {idempotencyKey},
+        )
 
         // 5. Persister dans tassi_shipments
         const {error: insertErr} = await supabase.from('tassi_shipments').insert({
