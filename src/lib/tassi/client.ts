@@ -130,6 +130,38 @@ class TassiClient {
     async cancelShipment(id: string): Promise<TassiResponse<TassiShipment>> {
         return this.request('DELETE', `/packages/${encodeURIComponent(id)}`)
     }
+
+    // -------------------------------------------------------------------------
+    // Customers — `.pro/customers` (FK requise par `POST /packages`)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Liste les customers, filtre par `phone_number` si fourni.
+     * NB : la doc Tassi ne documente pas cet endpoint, observé via le dashboard.
+     */
+    async listCustomers(params: {phone_number?: string} = {}): Promise<{
+        customers?: Array<{id: number | string; phone_number?: string}>
+        data?: Array<{id: number | string; phone_number?: string}>
+    }> {
+        const qs = new URLSearchParams()
+        if (params.phone_number) qs.set('phone_number', params.phone_number)
+        const tail = qs.toString() ? `?${qs}` : ''
+        return this.request('GET', `/customers${tail}`)
+    }
+
+    /** Crée un customer Tassi (pré-requis avant `POST /packages`). */
+    async createCustomer(input: {
+        phone_number: string
+        first_name?: string
+        last_name?: string
+        email?: string | null
+    }): Promise<{
+        customer?: {id: number | string}
+        data?: {id: number | string}
+        id?: number | string
+    }> {
+        return this.request('POST', '/customers', {body: input})
+    }
 }
 
 export const tassi = {
@@ -139,6 +171,15 @@ export const tassi = {
         retrieve: (id: string) => client.getShipment(id),
         label: (id: string) => client.generateLabel(id),
         cancel: (id: string) => client.cancelShipment(id),
+    },
+    customers: {
+        list: (params: {phone_number?: string} = {}) => client.listCustomers(params),
+        create: (input: {
+            phone_number: string
+            first_name?: string
+            last_name?: string
+            email?: string | null
+        }) => client.createCustomer(input),
     },
 }
 

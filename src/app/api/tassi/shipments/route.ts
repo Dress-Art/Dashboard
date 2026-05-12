@@ -153,13 +153,37 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        const packagePayload = {
-            customer: {
-                phone_number: client.phone,
+        // 4. findOrCreate customer Tassi (FK obligatoire pour POST /packages).
+        //    Phase 1 inline a échoué — Tassi exige un id existant.
+        let tassiCustomerId: number | string | null = null
+        if (client.phone) {
+            try {
+                const listed = await tassi.customers.list({phone_number: client.phone})
+                const found = (listed.customers ?? listed.data ?? [])[0]
+                if (found?.id !== undefined) tassiCustomerId = found.id
+            } catch (listErr) {
+                console.warn('[POST /api/tassi/shipments] GET /customers échoué (peut-être pas implémenté), on tente direct POST:', listErr)
+            }
+        }
+        if (tassiCustomerId === null) {
+            const created = await tassi.customers.create({
+                phone_number: client.phone ?? '',
                 first_name: firstName,
                 last_name: lastName,
-                email: orderRow.customer_email ?? undefined,
-            },
+                email: orderRow.customer_email ?? null,
+            })
+            tassiCustomerId =
+                created.customer?.id ?? created.data?.id ?? created.id ?? null
+            if (tassiCustomerId === null) {
+                throw new HttpError(502, 'TASSI_CUSTOMER_NO_ID')
+            }
+            console.log('[POST /api/tassi/shipments] customer Tassi créé id=', tassiCustomerId)
+        } else {
+            console.log('[POST /api/tassi/shipments] customer Tassi existant id=', tassiCustomerId)
+        }
+
+        const packagePayload = {
+            customer_id: tassiCustomerId,
             weight,
             description: `Tenue Dress Art - Commande #${orderForGuard.id}`,
             external_id: orderForGuard.id,
@@ -167,10 +191,8 @@ export async function POST(req: NextRequest) {
         }
         console.log('[POST /api/tassi/shipments] payload .pro/packages:', JSON.stringify(packagePayload))
 
-        // 4. POST Tassi avec idempotency
+        // 5. POST Tassi avec idempotency
         const idempotencyKey = randomUUID()
-        // On utilise le client `tassi.shipments.create` mais en passant le
-        // payload .pro/packages directement (le client envoie tel quel).
         const {data: shipment} = await tassi.shipments.create(
             packagePayload as unknown as Parameters<typeof tassi.shipments.create>[0],
             {idempotencyKey},
