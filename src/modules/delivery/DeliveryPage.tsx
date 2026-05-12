@@ -33,6 +33,7 @@ function rowToEntity(row: DeliveryRow, drivers: DriverEntry[]): DeliveryEntity {
         actualDeliveryTime: row.actual_delivery_time ?? undefined,
         created_at: row.created_at,
         assigned_at: row.assigned_at ?? undefined,
+        trackingToken: row.tracking_token,
     }
 }
 

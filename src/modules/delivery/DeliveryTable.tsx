@@ -1,6 +1,8 @@
 'use client'
 
-import {EyeIcon, XMarkIcon, ArrowRightIcon, UserPlusIcon} from '@heroicons/react/24/outline'
+import {EyeIcon, XMarkIcon, ArrowRightIcon, UserPlusIcon, LinkIcon} from '@heroicons/react/24/outline'
+import {notify} from '@/lib/toast'
+import {buildTrackingUrl} from '@/lib/deliveries-api'
 import {
     type DeliveryStatus,
     type DeliveryPriority,
@@ -24,6 +26,7 @@ export interface DeliveryEntity {
     actualDeliveryTime?: string
     created_at: string
     assigned_at?: string
+    trackingToken?: string
 }
 
 interface DeliveryTableProps {
@@ -151,6 +154,24 @@ export function DeliveryTable({
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex justify-end gap-1.5 flex-wrap">
+                                        {/* Copier le lien public de tracking client */}
+                                        {d.trackingToken && (
+                                            <button
+                                                onClick={async () => {
+                                                    const url = buildTrackingUrl(d.trackingToken!)
+                                                    try {
+                                                        await navigator.clipboard.writeText(url)
+                                                        notify.success('Lien copié', url)
+                                                    } catch {
+                                                        notify.error('Impossible de copier le lien')
+                                                    }
+                                                }}
+                                                className="p-1.5 text-gray-500 hover:text-black dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                                title="Copier le lien de suivi client"
+                                            >
+                                                <LinkIcon className="w-4 h-4" />
+                                            </button>
+                                        )}
                                         {/* pending → ouvre la modale Assigner */}
                                         {d.status === 'pending' && (
                                             <button
