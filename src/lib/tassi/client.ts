@@ -106,12 +106,12 @@ class TassiClient {
         input: TassiShipmentCreateInput,
         idempotencyKey: string,
     ): Promise<TassiResponse<TassiShipment>> {
-        return this.request('POST', '/shipments', {body: input, idempotencyKey})
+        return this.request('POST', '/packages', {body: input, idempotencyKey})
     }
 
     /** `GET /v1/shipments/{id}` — détail/statut courant. */
     async getShipment(id: string): Promise<TassiResponse<TassiShipment>> {
-        return this.request('GET', `/shipments/${encodeURIComponent(id)}`)
+        return this.request('GET', `/packages/${encodeURIComponent(id)}`)
     }
 
     /**
@@ -119,7 +119,7 @@ class TassiClient {
      * Endpoint déduit par convention (spec §16, à valider en sandbox).
      */
     async generateLabel(id: string): Promise<TassiResponse<TassiLabelResponse>> {
-        return this.request('POST', `/shipments/${encodeURIComponent(id)}/label`)
+        return this.request('POST', `/packages/${encodeURIComponent(id)}/label`)
     }
 
     /**
@@ -128,7 +128,7 @@ class TassiClient {
      * À tester en sandbox avant usage en prod.
      */
     async cancelShipment(id: string): Promise<TassiResponse<TassiShipment>> {
-        return this.request('DELETE', `/shipments/${encodeURIComponent(id)}`)
+        return this.request('DELETE', `/packages/${encodeURIComponent(id)}`)
     }
 }
 

@@ -38,9 +38,18 @@ const HTTP_TO_FR: Record<number, string> = {
 
 export function describeTassiError(err: unknown): string {
     if (err instanceof TassiApiError) {
-        if (typeof err.body === 'object' && err.body?.error?.message) {
-            return err.body.error.message
+        if (typeof err.body === 'object' && err.body !== null) {
+            const b = err.body as {
+                error?: {message?: string}
+                message?: string | string[]
+            }
+            // Forme spec (.com/v1) : { error: { message: "..." } }
+            if (b.error?.message) return b.error.message
+            // Forme observée (.pro/packages) : { message: "..." } ou ["...", "..."]
+            if (Array.isArray(b.message)) return b.message.join(' ; ')
+            if (typeof b.message === 'string') return b.message
         }
+        if (typeof err.body === 'string' && err.body.length > 0) return err.body
         return HTTP_TO_FR[err.status] ?? `Erreur Tassi (HTTP ${err.status})`
     }
     if (err instanceof Error) return err.message

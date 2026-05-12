@@ -177,8 +177,22 @@ export async function POST(req: NextRequest) {
             )
         }
         if (err instanceof TassiApiError) {
+            // Log côté serveur le corps brut pour pouvoir le copier-coller en debug
+            console.error('[POST /api/tassi/shipments] Tassi rejected:', {
+                status: err.status,
+                path: err.path,
+                request_id: err.requestId,
+                body: err.body,
+            })
             return NextResponse.json(
-                {error: 'TASSI_API_ERROR', message: describeTassiError(err)},
+                {
+                    error: 'TASSI_API_ERROR',
+                    message: describeTassiError(err),
+                    // Body brut Tassi pour debug front (validation messages)
+                    tassi_body: err.body,
+                    tassi_status: err.status,
+                    tassi_request_id: err.requestId,
+                },
                 {status: err.status >= 400 && err.status < 600 ? err.status : 502},
             )
         }
