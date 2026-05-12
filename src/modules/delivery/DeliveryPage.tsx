@@ -1,7 +1,13 @@
 'use client'
 
 import {useState, useEffect, useCallback, useMemo} from 'react'
-import {adminAPI} from '@/lib/admin-api'
+import {
+    listDeliveries,
+    assignDelivery,
+    updateDeliveryStatus,
+    type DeliveryRow,
+} from '@/lib/deliveries-api'
+import {listDriversForAssignment, type DriverEntry} from '@/app/actions/drivers'
 import {notify} from '@/lib/toast'
 import {DeliveryTable, type DeliveryEntity} from './DeliveryTable'
 import {CheckIcon, ArrowDownTrayIcon} from '@heroicons/react/24/outline'
@@ -10,6 +16,25 @@ import {
     DELIVERY_STATUS_LABELS_FR,
     isDeliveryTerminal,
 } from '@/types/delivery.types'
+
+function rowToEntity(row: DeliveryRow, drivers: DriverEntry[]): DeliveryEntity {
+    const driver = row.driver_id ? drivers.find(d => d.id === row.driver_id) : undefined
+    return {
+        id: row.id,
+        orderId: row.order_id,
+        customerName: row.customer_name,
+        customerAddress: row.customer_address,
+        customerPhone: row.customer_phone ?? undefined,
+        driverId: row.driver_id ?? undefined,
+        driverName: driver?.name,
+        status: row.status,
+        priority: row.priority,
+        estimatedTime: row.estimated_time ?? undefined,
+        actualDeliveryTime: row.actual_delivery_time ?? undefined,
+        created_at: row.created_at,
+        assigned_at: row.assigned_at ?? undefined,
+    }
+}
 
 type FilterTab = 'all' | DeliveryStatus
 
@@ -45,27 +70,27 @@ export function DeliveryPage() {
     const [selectedDelivery, setSelectedDelivery] = useState<DeliveryEntity | null>(null)
     const [actionLoading, setActionLoading] = useState<string | null>(null)
 
-    const [availableDrivers, setAvailableDrivers] = useState<Array<{id: string; name: string; email: string}>>([])
+    const [availableDrivers, setAvailableDrivers] = useState<DriverEntry[]>([])
     const [assignForm, setAssignForm] = useState<AssignFormState>(EMPTY_ASSIGN_FORM)
 
     // Charger les livreurs disponibles (1 fois au montage)
     useEffect(() => {
-        adminAPI.getAvailableDrivers()
-            .then(res => setAvailableDrivers(res.drivers))
+        listDriversForAssignment()
+            .then(res => {
+                if (res.success) setAvailableDrivers(res.drivers)
+                else console.error('Erreur chargement livreurs:', res.error)
+            })
             .catch(err => console.error('Erreur chargement livreurs:', err))
     }, [])
 
     const loadDeliveries = useCallback(async () => {
         try {
             setLoading(true)
-            const response = await adminAPI.getDeliveries({
+            const {deliveries, total} = await listDeliveries({
                 ...(q.trim() && {search: q.trim()}),
-            }) as {deliveries?: DeliveryEntity[]; total?: number}
-
-            setData({
-                items: response.deliveries || [],
-                total: response.total || 0,
             })
+            const items = deliveries.map(row => rowToEntity(row, availableDrivers))
+            setData({items, total})
         } catch (err) {
             console.error('Erreur chargement livraisons:', err)
             notify.error(err)
@@ -73,7 +98,7 @@ export function DeliveryPage() {
         } finally {
             setLoading(false)
         }
-    }, [q])
+    }, [q, availableDrivers])
 
     useEffect(() => {
         loadDeliveries()
@@ -114,11 +139,10 @@ export function DeliveryPage() {
         }
         try {
             setActionLoading(`assign-${selectedDelivery.id}`)
-            await adminAPI.assignDelivery({
-                orderId: selectedDelivery.orderId,
+            await assignDelivery(selectedDelivery.id, {
                 driverId: assignForm.driverId,
                 priority: assignForm.priority,
-                estimatedTime: assignForm.estimatedTime,
+                estimatedTime: assignForm.estimatedTime || null,
             })
             notify.success(
                 `Livraison #${selectedDelivery.orderId}`,
@@ -139,7 +163,7 @@ export function DeliveryPage() {
     const handleAdvance = async (delivery: DeliveryEntity, next: DeliveryStatus) => {
         try {
             setActionLoading(`advance-${delivery.id}`)
-            await adminAPI.updateDeliveryStatus(delivery.id, next)
+            await updateDeliveryStatus(delivery.id, next)
             notify.success(
                 `Livraison #${delivery.orderId}`,
                 `→ ${DELIVERY_STATUS_LABELS_FR[next]}`,
@@ -157,7 +181,7 @@ export function DeliveryPage() {
         if (isDeliveryTerminal(delivery.status)) return
         try {
             setActionLoading(`cancel-${delivery.id}`)
-            await adminAPI.updateDeliveryStatus(delivery.id, 'cancelled')
+            await updateDeliveryStatus(delivery.id, 'cancelled')
             notify.success(`Livraison #${delivery.orderId}`, 'Annulée')
             await loadDeliveries()
         } catch (err) {
