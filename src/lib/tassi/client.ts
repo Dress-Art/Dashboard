@@ -8,27 +8,11 @@ import type {
     TassiShipmentCreateInput,
 } from './types'
 
-/**
- * Client HTTP Tassi.pro — server-only.
- * Référence : spec §10 (auth), §11 (modèles), §16 (hypothèses).
- *
- * Variables d'env requises (spec §2.2) :
- *   - TASSI_SECRET_KEY  : `sk_sandbox_*` ou `sk_live_*` (bearer)
- *   - TASSI_BASE_URL    : `https://sandbox-api.tassi.com/v1` ou `https://api.tassi.com/v1`
- *
- * Les calls passent TOUS par `request()` qui :
- *   1. Ajoute `Authorization: Bearer ...`, `Content-Type: application/json`
- *   2. Propage `Idempotency-Key` si fourni en options
- *   3. Lève `TassiApiError` typée sur !res.ok (avec le request_id du body)
- */
 
 interface RequestOptions {
     body?: unknown
-    /** UUID v4 — obligatoire sur les créations (spec §10.2). */
     idempotencyKey?: string
-    /** Headers additionnels éventuels. */
     headers?: Record<string, string>
-    /** Override du base URL (utile pour les tests). */
     baseUrl?: string
 }
 
