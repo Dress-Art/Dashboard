@@ -310,6 +310,48 @@ export async function manualAssignCouturierAction(input: {orderId: string; order
 }
 
 
+export async function getOrdersWithAssignmentsAction(params?: {search?: string; status?: string}): Promise<{success: boolean; error?: string; assignmentMap: Record<string, string>}> {
+    try {
+        const sessionClient = await createSupabaseServerClient()
+        const {data: {user}} = await sessionClient.auth.getUser()
+        if (!user) return {success: false, error: 'unauthorized', assignmentMap: {}}
+
+        const role = getUserRole(user)
+        if (!isProfessionalRole(role)) return {success: false, error: 'forbidden', assignmentMap: {}}
+
+        // Get orders from marketplace (has all denormalized display fields)
+        const supabase = createSupabaseServiceClient()
+        let query = supabase.from('orders').select('id, orderNumber, professional_id')
+
+        if (params?.search) {
+            const search = params.search.toLowerCase()
+            query = query.or(`orderNumber.ilike.%${search}%`)
+        }
+
+        const {data: assignments, error: assignmentError} = await query
+
+        if (assignmentError) {
+            console.error('getOrdersWithAssignments: error fetching assignments', assignmentError)
+            // Continue anyway - marketplace data doesn't need this
+        }
+
+        // Build a map of orderId → professional_id
+        const assignmentMap: Record<string, string> = {}
+        if (assignments) {
+            for (const order of assignments) {
+                if (order.professional_id) {
+                    assignmentMap[order.id] = order.professional_id
+                }
+            }
+        }
+
+        return {success: true as const, assignmentMap}
+    } catch (err) {
+        console.error('getOrdersWithAssignmentsAction unexpected error', err)
+        return {success: false, error: err instanceof Error ? err.message : String(err), assignmentMap: {}}
+    }
+}
+
 export async function getOrdersDirectAction(params?: {search?: string; status?: string}) {
     const sessionClient = await createSupabaseServerClient()
     const {data: {user}} = await sessionClient.auth.getUser()
