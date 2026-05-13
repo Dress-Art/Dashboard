@@ -743,142 +743,149 @@ export function OrdersPage() {
                                     </div>
                                 )}
 
-                                {role === 'admin' && selectedOrder && selectedOrder.model_id && selectedOrder.professional_id && (
-                                    <div className="rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/70 dark:bg-blue-950/20 p-4 space-y-3">
-                                        <div className="flex items-center justify-between">
+                                {role === 'admin' && (
+                                    <details className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 p-4">
+                                        <summary className="cursor-pointer list-none flex items-center justify-between gap-3">
                                             <div>
-                                                <p className="text-sm font-semibold text-black dark:text-white">Couturier suggéré</p>
-                                                <p className="text-xs text-gray-600 dark:text-gray-400">Suggestion déduite du modèle associé à la commande.</p>
+                                                <p className="text-sm font-semibold text-black dark:text-white">Outils admin</p>
+                                                <p className="text-xs text-gray-600 dark:text-gray-400">Suggestion, rappel et assignation dans un seul panneau.</p>
                                             </div>
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200">
-                                                Suggestion auto-détectée
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-sm font-medium text-black dark:text-white">
-                                                {professionalNames[selectedOrder.professional_id] || 'Couturier'}
-                                            </span>
-                                            <button
-                                                onClick={async () => {
-                                                    setLaunchingDeliveryId(null) // ensure separate state not reused
-                                                    setRemindingCouturierId(null)
-                                                    try {
-                                                        setLaunchingDeliveryId(selectedOrder.orderNumber)
-                                                        const res = await acceptCouturierSuggestionAction({orderId: selectedOrder.id, professionalId: selectedOrder.professional_id!})
-                                                        if (!res.success) {
-                                                            notify.error(res.error ?? 'Impossible d\'accepter la suggestion')
-                                                            return
-                                                        }
-                                                        notify.success('Suggestion acceptée', 'Le couturier a été affecté à la commande')
-                                                        await load()
-                                                    } catch (err) {
-                                                        notify.error(err)
-                                                    } finally {
-                                                        setLaunchingDeliveryId(null)
-                                                    }
-                                                }}
-                                                className="px-3 py-1.5 bg-black dark:bg-white text-white dark:text-black rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-200"
-                                            >
-                                                Accepter la suggestion
-                                            </button>
-                                            <button
-                                                onClick={async () => {
-                                                    setLaunchingDeliveryId(null)
-                                                    setRemindingCouturierId(null)
-                                                    try {
-                                                        setLaunchingDeliveryId(selectedOrder.orderNumber)
-                                                        const res = await revokeCouturierSuggestionAction({orderId: selectedOrder.id})
-                                                        if (!res.success) {
-                                                            notify.error(res.error ?? 'Impossible de retirer la suggestion')
-                                                            return
-                                                        }
-                                                        notify.success('Suggestion retirée', 'Le couturier a été désassigné')
-                                                        await load()
-                                                    } catch (err) {
-                                                        notify.error(err)
-                                                    } finally {
-                                                        setLaunchingDeliveryId(null)
-                                                    }
-                                                }}
-                                                className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600"
-                                            >
-                                                Retirer
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {role === 'admin' && (
-                                    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 p-4 space-y-3">
-                                        <div>
-                                            <p className="text-sm font-semibold text-black dark:text-white">Rappel couturier</p>
-                                            <p className="text-xs text-gray-600 dark:text-gray-400">
-                                                Relance WhatsApp du couturier rattaché à cette commande.
-                                            </p>
-                                        </div>
-                                        <button
-                                            onClick={() => handleRemindCouturier(selectedOrder)}
-                                            disabled={remindingCouturierId === selectedOrder.orderNumber || !selectedOrder.professional_id}
-                                            className="px-4 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 transition-colors"
-                                        >
-                                            {remindingCouturierId === selectedOrder.orderNumber ? 'Envoi…' : 'Relancer le couturier'}
-                                        </button>
-                                        {!selectedOrder.professional_id && (
-                                            <p className="text-xs text-amber-700 dark:text-amber-300">
-                                                Aucun couturier n’est rattaché à cette commande.
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
-
-                                {role === 'admin' && (
-                                    <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50/70 dark:bg-amber-950/20 p-4 space-y-3">
-                                        <div>
-                                            <p className="text-sm font-semibold text-black dark:text-white">Assignation manuelle</p>
-                                            <p className="text-xs text-gray-600 dark:text-gray-400">Rechercher et assigner un couturier à la commande.</p>
-                                        </div>
-                                        <input
-                                            type="text"
-                                            placeholder="Rechercher un couturier par nom..."
-                                            value={searchCouturier}
-                                            onChange={(e) => setSearchCouturier(e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white text-sm"
-                                        />
-                                        <div className="max-h-48 overflow-y-auto space-y-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 p-2">
-                                            {couturiers
-                                                .filter(c => c.name.toLowerCase().includes(searchCouturier.toLowerCase()) || c.email.toLowerCase().includes(searchCouturier.toLowerCase()))
-                                                .map(c => (
-                                                    <button
-                                                        key={c.id}
-                                                        onClick={async () => {
-                                                            setAssigningCouturierId(c.id)
-                                                            try {
-                                                                const res = await manualAssignCouturierAction({orderId: selectedOrder.id, couturierId: c.id})
-                                                                if (!res.success) {
-                                                                    notify.error(res.error ?? 'Impossible d\'assigner le couturier')
-                                                                    return
+                                            <span className="text-xs text-gray-500 dark:text-gray-400">Afficher</span>
+                                        </summary>
+                                        <div className="mt-4 space-y-4">
+                                            {selectedOrder && selectedOrder.model_id && selectedOrder.professional_id && (
+                                                <div className="rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/70 dark:bg-blue-950/20 p-4 space-y-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-black dark:text-white">Couturier suggéré</p>
+                                                            <p className="text-xs text-gray-600 dark:text-gray-400">Suggestion déduite du modèle associé à la commande.</p>
+                                                        </div>
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200">
+                                                            Suggestion auto-détectée
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex flex-wrap items-center gap-3">
+                                                        <span className="text-sm font-medium text-black dark:text-white">
+                                                            {professionalNames[selectedOrder.professional_id] || 'Couturier'}
+                                                        </span>
+                                                        <button
+                                                            onClick={async () => {
+                                                                setLaunchingDeliveryId(null)
+                                                                setRemindingCouturierId(null)
+                                                                try {
+                                                                    setLaunchingDeliveryId(selectedOrder.orderNumber)
+                                                                    const res = await acceptCouturierSuggestionAction({orderId: selectedOrder.id, professionalId: selectedOrder.professional_id!})
+                                                                    if (!res.success) {
+                                                                        notify.error(res.error ?? 'Impossible d\'accepter la suggestion')
+                                                                        return
+                                                                    }
+                                                                    notify.success('Suggestion acceptée', 'Le couturier a été affecté à la commande')
+                                                                    await load()
+                                                                } catch (err) {
+                                                                    notify.error(err)
+                                                                } finally {
+                                                                    setLaunchingDeliveryId(null)
                                                                 }
-                                                                notify.success('Couturier assigné', `${c.name} a été affecté à la commande`)
-                                                                setSearchCouturier('')
-                                                                await load()
-                                                            } catch (err) {
-                                                                notify.error(err)
-                                                            } finally {
-                                                                setAssigningCouturierId(null)
-                                                            }
-                                                        }}
-                                                        disabled={assigningCouturierId !== null || selectedOrder.professional_id === c.id}
-                                                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm text-gray-800 dark:text-gray-200"
-                                                    >
-                                                        <div className="font-medium">{c.name}</div>
-                                                        <div className="text-xs text-gray-500 dark:text-gray-400">{c.email}</div>
-                                                    </button>
-                                                ))}
-                                            {couturiers.filter(c => c.name.toLowerCase().includes(searchCouturier.toLowerCase()) || c.email.toLowerCase().includes(searchCouturier.toLowerCase())).length === 0 && (
-                                                <p className="text-xs text-gray-500 p-2 text-center">Aucun couturier trouvé</p>
+                                                            }}
+                                                            className="px-3 py-1.5 bg-black dark:bg-white text-white dark:text-black rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-200"
+                                                        >
+                                                            Accepter
+                                                        </button>
+                                                        <button
+                                                            onClick={async () => {
+                                                                setLaunchingDeliveryId(null)
+                                                                setRemindingCouturierId(null)
+                                                                try {
+                                                                    setLaunchingDeliveryId(selectedOrder.orderNumber)
+                                                                    const res = await revokeCouturierSuggestionAction({orderId: selectedOrder.id})
+                                                                    if (!res.success) {
+                                                                        notify.error(res.error ?? 'Impossible de retirer la suggestion')
+                                                                        return
+                                                                    }
+                                                                    notify.success('Suggestion retirée', 'Le couturier a été désassigné')
+                                                                    await load()
+                                                                } catch (err) {
+                                                                    notify.error(err)
+                                                                } finally {
+                                                                    setLaunchingDeliveryId(null)
+                                                                }
+                                                            }}
+                                                            className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600"
+                                                        >
+                                                            Retirer
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             )}
+
+                                            <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/70 dark:bg-black/20 p-4 space-y-3">
+                                                <div>
+                                                    <p className="text-sm font-semibold text-black dark:text-white">Rappel couturier</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Relance WhatsApp du couturier rattaché à cette commande.</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleRemindCouturier(selectedOrder)}
+                                                    disabled={remindingCouturierId === selectedOrder.orderNumber || !selectedOrder.professional_id}
+                                                    className="px-4 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                                                >
+                                                    {remindingCouturierId === selectedOrder.orderNumber ? 'Envoi…' : 'Relancer'}
+                                                </button>
+                                                {!selectedOrder.professional_id && (
+                                                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                                                        Aucun couturier n’est rattaché à cette commande.
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50/70 dark:bg-amber-950/20 p-4 space-y-3">
+                                                <div>
+                                                    <p className="text-sm font-semibold text-black dark:text-white">Assignation manuelle</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Rechercher et assigner un couturier à la commande.</p>
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Rechercher un couturier par nom..."
+                                                    value={searchCouturier}
+                                                    onChange={(e) => setSearchCouturier(e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white text-sm"
+                                                />
+                                                <div className="max-h-48 overflow-y-auto space-y-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 p-2">
+                                                    {couturiers
+                                                        .filter(c => c.name.toLowerCase().includes(searchCouturier.toLowerCase()) || c.email.toLowerCase().includes(searchCouturier.toLowerCase()))
+                                                        .map(c => (
+                                                            <button
+                                                                key={c.id}
+                                                                onClick={async () => {
+                                                                    setAssigningCouturierId(c.id)
+                                                                    try {
+                                                                        const res = await manualAssignCouturierAction({orderId: selectedOrder.id, couturierId: c.id})
+                                                                        if (!res.success) {
+                                                                            notify.error(res.error ?? 'Impossible d\'assigner le couturier')
+                                                                            return
+                                                                        }
+                                                                        notify.success('Couturier assigné', `${c.name} a été affecté à la commande`)
+                                                                        setSearchCouturier('')
+                                                                        await load()
+                                                                    } catch (err) {
+                                                                        notify.error(err)
+                                                                    } finally {
+                                                                        setAssigningCouturierId(null)
+                                                                    }
+                                                                }}
+                                                                disabled={assigningCouturierId !== null || selectedOrder.professional_id === c.id}
+                                                                className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm text-gray-800 dark:text-gray-200"
+                                                            >
+                                                                <div className="font-medium">{c.name}</div>
+                                                                <div className="text-xs text-gray-500 dark:text-gray-400">{c.email}</div>
+                                                            </button>
+                                                        ))}
+                                                    {couturiers.filter(c => c.name.toLowerCase().includes(searchCouturier.toLowerCase()) || c.email.toLowerCase().includes(searchCouturier.toLowerCase())).length === 0 && (
+                                                        <p className="text-xs text-gray-500 p-2 text-center">Aucun couturier trouvé</p>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
+                                    </details>
                                 )}
 
                                 <div className="flex gap-3">
