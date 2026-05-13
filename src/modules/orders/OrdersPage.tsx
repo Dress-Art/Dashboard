@@ -6,7 +6,7 @@ import { useAuthContext } from '@/contexts/AuthContext'
 import { notify } from '@/lib/toast'
 import { listTissus } from '@/lib/tissus-api'
 import { createDeliveryFromOrderAction } from '@/app/actions/deliveries'
-import { remindCouturierAction, resolveOrderProfessionalsAction, acceptCouturierSuggestionAction, revokeCouturierSuggestionAction, listCouturiersAction, manualAssignCouturierAction } from '@/app/actions/orders'
+import { remindCouturierAction, resolveOrderProfessionalsAction, acceptCouturierSuggestionAction, revokeCouturierSuggestionAction, listCouturiersAction, manualAssignCouturierAction, getOrdersDirectAction } from '@/app/actions/orders'
 import {
     type OrderStatus,
     type OrderPaymentStatus,
@@ -416,8 +416,13 @@ export function OrdersPage() {
     const load = useCallback(async () => {
         try {
             setLoading(true)
-            const data = await adminAPI.getOrders({ search, status: statusFilter })
-            const raw: Order[] = data.orders ?? []
+            // Load orders directly from local Supabase to get professional_id assignments
+            const directResult = await getOrdersDirectAction({ search, status: statusFilter })
+            if (!directResult.success) {
+                notify.error(directResult.error ?? 'Erreur chargement commandes')
+                return
+            }
+            const raw: Order[] = (directResult.orders ?? []) as Order[]
             const modelIds = raw.map(order => order.model_id).filter(Boolean) as string[]
             const resolved = modelIds.length > 0
                 ? await resolveOrderProfessionalsAction({modelIds})
@@ -426,10 +431,11 @@ export function OrdersPage() {
             const professionalAssignments = resolved.success ? resolved.assignments : {}
             const names = resolved.success ? (resolved.professionalNames ?? {}) : {}
             setProfessionalNames(names)
-            // Normalise les anciens statuts (backend marketplace pas encore migré)
+            // Normalize status variants and use professional_id directly from local Supabase
             setOrders(raw.map(o => ({
                 ...o,
                 status: normalizeStatus(o.status as string),
+                // professional_id already populated from local Supabase query
                 professional_id: o.professional_id ?? (o.model_id ? professionalAssignments[o.model_id] : undefined),
             })))
         } catch (err) {
