@@ -5,6 +5,7 @@ import { adminAPI } from '@/lib/admin-api'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { notify } from '@/lib/toast'
 import { listTissus } from '@/lib/tissus-api'
+import { createDeliveryFromOrderAction } from '@/app/actions/deliveries'
 import {
     type OrderStatus,
     type OrderPaymentStatus,
@@ -318,6 +319,7 @@ export function OrdersPage() {
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
     const [editingMeasurements, setEditingMeasurements] = useState(false)
     const [savingMeasurements, setSavingMeasurements] = useState(false)
+    const [launchingDeliveryId, setLaunchingDeliveryId] = useState<string | null>(null)
 
     /**
      * Liste des fabric_id appartenant au vendeur connecté. Chargée 1 fois si
@@ -430,6 +432,31 @@ export function OrdersPage() {
             notify.error(err)
         } finally {
             setSavingMeasurements(false)
+        }
+    }
+
+    const handleLaunchDelivery = async (order: Order) => {
+        if (order.status !== 'ready_for_delivery') {
+            notify.error('Passez la commande en "Prêt pour livraison" avant de lancer la livraison.')
+            return
+        }
+
+        setLaunchingDeliveryId(order.orderNumber)
+        try {
+            const result = await createDeliveryFromOrderAction({orderId: order.id})
+            if (!result.success) {
+                notify.error(result.error ?? 'Impossible de créer la livraison')
+                return
+            }
+
+            notify.success(
+                `Livraison ${order.orderNumber}`,
+                result.created ? 'Livraison créée' : 'Livraison déjà existante',
+            )
+        } catch (err) {
+            notify.error(err)
+        } finally {
+            setLaunchingDeliveryId(null)
         }
     }
 
@@ -618,7 +645,40 @@ export function OrdersPage() {
 
                         {/* Actions dans la modale (cachées en lecture seule) */}
                         {!isReadOnly && !isTerminal(selectedOrder.status) && (
-                            <div className="flex gap-3 mt-6">
+                            <div className="space-y-3 mt-6">
+                                {role === 'admin' && (
+                                    <div className="rounded-xl border border-teal-200 dark:border-teal-900 bg-teal-50/70 dark:bg-teal-950/20 p-4 space-y-3">
+                                        <div>
+                                            <p className="text-sm font-semibold text-black dark:text-white">Livraison maison</p>
+                                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                                                Une livraison est créée automatiquement quand la commande passe en “Prêt pour livraison”.
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[selectedOrder.status]}`}>
+                                                {ORDER_STATUS_LABELS_FR[selectedOrder.status]}
+                                            </span>
+                                            <button
+                                                onClick={() => handleLaunchDelivery(selectedOrder)}
+                                                disabled={selectedOrder.status !== 'ready_for_delivery' || launchingDeliveryId === selectedOrder.orderNumber}
+                                                className="px-4 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                                            >
+                                                {launchingDeliveryId === selectedOrder.orderNumber
+                                                    ? 'Création…'
+                                                    : selectedOrder.status === 'ready_for_delivery'
+                                                        ? 'Lancer la livraison'
+                                                        : 'Passez à prêt pour livraison'}
+                                            </button>
+                                        </div>
+                                        {selectedOrder.status !== 'ready_for_delivery' && (
+                                            <p className="text-xs text-amber-700 dark:text-amber-300">
+                                                Cette action sera activée quand la commande atteindra le statut “Prêt pour livraison”.
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
+                                <div className="flex gap-3">
                                 {NEXT_STATUS[selectedOrder.status] && (
                                     <button
                                         onClick={() => handleStatusChange(selectedOrder, NEXT_STATUS[selectedOrder.status]!)}
@@ -635,6 +695,7 @@ export function OrdersPage() {
                                 >
                                     Annuler
                                 </button>
+                                </div>
                             </div>
                         )}
                     </div>
