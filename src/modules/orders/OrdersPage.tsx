@@ -659,7 +659,7 @@ export function OrdersPage() {
             {/* Modale détail commande */}
             {selectedOrder && (
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setSelectedOrder(null)}>
-                    <div className="bg-white dark:bg-gray-950 rounded-2xl p-6 w-full max-w-lg border border-gray-200 dark:border-gray-800 shadow-2xl" onClick={e => e.stopPropagation()}>
+                    <div className="bg-white dark:bg-gray-950 rounded-2xl p-6 w-full max-w-lg max-h-[90vh] border border-gray-200 dark:border-gray-800 shadow-2xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-start mb-6">
                             <div>
                                 <h2 className="text-xl font-bold text-black dark:text-white">{selectedOrder.orderNumber}</h2>
@@ -670,7 +670,7 @@ export function OrdersPage() {
                             <button onClick={() => setSelectedOrder(null)} className="text-gray-400 hover:text-gray-900 dark:hover:text-white text-xl">✕</button>
                         </div>
 
-                        <div className="space-y-3 text-sm">
+                        <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3 text-sm">
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-3">
                                     <p className="text-xs text-gray-400 mb-1">Client</p>
@@ -818,72 +818,71 @@ export function OrdersPage() {
                                                 </div>
                                             )}
 
-                                            <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/70 dark:bg-black/20 p-4 space-y-3">
-                                                <div>
-                                                    <p className="text-sm font-semibold text-black dark:text-white">Rappel couturier</p>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Relance WhatsApp du couturier rattaché à cette commande.</p>
+                                            {selectedOrder.professional_id && (
+                                                <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/70 dark:bg-black/20 p-4 space-y-3">
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-black dark:text-white">Rappel couturier</p>
+                                                        <p className="text-xs text-gray-600 dark:text-gray-400">Relance WhatsApp du couturier rattaché à cette commande.</p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleRemindCouturier(selectedOrder)}
+                                                        disabled={remindingCouturierId === selectedOrder.orderNumber}
+                                                        className="px-4 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                                                    >
+                                                        {remindingCouturierId === selectedOrder.orderNumber ? 'Envoi…' : 'Relancer'}
+                                                    </button>
                                                 </div>
-                                                <button
-                                                    onClick={() => handleRemindCouturier(selectedOrder)}
-                                                    disabled={remindingCouturierId === selectedOrder.orderNumber || !selectedOrder.professional_id}
-                                                    className="px-4 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 transition-colors"
-                                                >
-                                                    {remindingCouturierId === selectedOrder.orderNumber ? 'Envoi…' : 'Relancer'}
-                                                </button>
-                                                {!selectedOrder.professional_id && (
-                                                    <p className="text-xs text-amber-700 dark:text-amber-300">
-                                                        Aucun couturier n’est rattaché à cette commande.
-                                                    </p>
-                                                )}
-                                            </div>
+                                            )}
 
-                                            <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50/70 dark:bg-amber-950/20 p-4 space-y-3">
-                                                <div>
-                                                    <p className="text-sm font-semibold text-black dark:text-white">Assignation manuelle</p>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Rechercher et assigner un couturier à la commande.</p>
-                                                </div>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Rechercher un couturier par nom..."
-                                                    value={searchCouturier}
-                                                    onChange={(e) => setSearchCouturier(e.target.value)}
-                                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white text-sm"
-                                                />
-                                                <div className="max-h-48 overflow-y-auto space-y-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 p-2">
-                                                    {couturiers
-                                                        .filter(c => c.name.toLowerCase().includes(searchCouturier.toLowerCase()) || c.email.toLowerCase().includes(searchCouturier.toLowerCase()))
-                                                        .map(c => (
-                                                            <button
-                                                                key={c.id}
-                                                                onClick={async () => {
-                                                                    setAssigningCouturierId(c.id)
-                                                                    try {
-                                                                        const res = await manualAssignCouturierAction({orderId: selectedOrder.id, couturierId: c.id})
-                                                                        if (!res.success) {
-                                                                            notify.error(res.error ?? 'Impossible d\'assigner le couturier')
-                                                                            return
+                                            {!selectedOrder.professional_id && (
+                                                <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50/70 dark:bg-amber-950/20 p-4 space-y-3">
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-black dark:text-white">Assignation manuelle</p>
+                                                        <p className="text-xs text-gray-600 dark:text-gray-400">Rechercher et assigner un couturier à la commande.</p>
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Rechercher un couturier par nom..."
+                                                        value={searchCouturier}
+                                                        onChange={(e) => setSearchCouturier(e.target.value)}
+                                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white text-sm"
+                                                    />
+                                                    <div className="max-h-48 overflow-y-auto space-y-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 p-2">
+                                                        {couturiers
+                                                            .filter(c => c.name.toLowerCase().includes(searchCouturier.toLowerCase()) || c.email.toLowerCase().includes(searchCouturier.toLowerCase()))
+                                                            .map(c => (
+                                                                <button
+                                                                    key={c.id}
+                                                                    onClick={async () => {
+                                                                        setAssigningCouturierId(c.id)
+                                                                        try {
+                                                                            const res = await manualAssignCouturierAction({orderId: selectedOrder.id, couturierId: c.id})
+                                                                            if (!res.success) {
+                                                                                notify.error(res.error ?? 'Impossible d\'assigner le couturier')
+                                                                                return
+                                                                            }
+                                                                            notify.success('Couturier assigné', `${c.name} a été affecté à la commande`)
+                                                                            setSearchCouturier('')
+                                                                            await load()
+                                                                        } catch (err) {
+                                                                            notify.error(err)
+                                                                        } finally {
+                                                                            setAssigningCouturierId(null)
                                                                         }
-                                                                        notify.success('Couturier assigné', `${c.name} a été affecté à la commande`)
-                                                                        setSearchCouturier('')
-                                                                        await load()
-                                                                    } catch (err) {
-                                                                        notify.error(err)
-                                                                    } finally {
-                                                                        setAssigningCouturierId(null)
-                                                                    }
-                                                                }}
-                                                                disabled={assigningCouturierId !== null || selectedOrder.professional_id === c.id}
-                                                                className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm text-gray-800 dark:text-gray-200"
-                                                            >
-                                                                <div className="font-medium">{c.name}</div>
-                                                                <div className="text-xs text-gray-500 dark:text-gray-400">{c.email}</div>
-                                                            </button>
-                                                        ))}
-                                                    {couturiers.filter(c => c.name.toLowerCase().includes(searchCouturier.toLowerCase()) || c.email.toLowerCase().includes(searchCouturier.toLowerCase())).length === 0 && (
-                                                        <p className="text-xs text-gray-500 p-2 text-center">Aucun couturier trouvé</p>
-                                                    )}
+                                                                    }}
+                                                                    disabled={assigningCouturierId !== null || selectedOrder.professional_id === c.id}
+                                                                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm text-gray-800 dark:text-gray-200"
+                                                                >
+                                                                    <div className="font-medium">{c.name}</div>
+                                                                    <div className="text-xs text-gray-500 dark:text-gray-400">{c.email}</div>
+                                                                </button>
+                                                            ))}
+                                                        {couturiers.filter(c => c.name.toLowerCase().includes(searchCouturier.toLowerCase()) || c.email.toLowerCase().includes(searchCouturier.toLowerCase())).length === 0 && (
+                                                            <p className="text-xs text-gray-500 p-2 text-center">Aucun couturier trouvé</p>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            )}
                                         </div>
                                     </details>
                                 )}
