@@ -7,8 +7,10 @@ import {
 } from '@/lib/deliveries-api'
 import {listDriversForAssignment, type DriverEntry} from '@/app/actions/drivers'
 import {assignDeliveryAction, updateDeliveryStatusAction} from '@/app/actions/deliveries'
+import {useAuthContext} from '@/contexts/AuthContext'
 import {notify} from '@/lib/toast'
 import {DeliveryTable, type DeliveryEntity} from './DeliveryTable'
+import {MeDeliveriesPage} from './MeDeliveriesPage'
 import {CheckIcon, ArrowDownTrayIcon} from '@heroicons/react/24/outline'
 import {
     type DeliveryStatus,
@@ -61,6 +63,40 @@ const EMPTY_ASSIGN_FORM: AssignFormState = {
 }
 
 export function DeliveryPage() {
+    const {role, user, loading: authLoading} = useAuthContext()
+
+    if (authLoading) {
+        return (
+            <div className="p-6">
+                <div className="animate-pulse space-y-4">
+                    <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+                    <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                    {[...Array(3)].map((_, i) => (
+                        <div key={i} className="h-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                    ))}
+                </div>
+            </div>
+        )
+    }
+
+    if (role === 'livreur' && user) {
+        return <MeDeliveriesPage driverId={user.id} />
+    }
+
+    if (role !== 'admin') {
+        return (
+            <div className="p-6">
+                <div className="rounded-lg border border-gray-300 dark:border-gray-700 p-4 text-sm text-gray-600 dark:text-gray-300">
+                    Ce module est réservé aux admins et livreurs.
+                </div>
+            </div>
+        )
+    }
+
+    return <DeliveryAdminPage />
+}
+
+function DeliveryAdminPage() {
     const [q, setQ] = useState('')
     const [loading, setLoading] = useState(false)
     const [data, setData] = useState<{items: DeliveryEntity[]; total: number} | null>(null)
