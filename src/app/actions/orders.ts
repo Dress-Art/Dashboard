@@ -6,6 +6,39 @@ import {getUserRole, isProfessionalRole} from '@/lib/roles'
 import {notifyCouturierReminder} from '@/lib/notifications/orders'
 import {ORDER_STATUS_LABELS_FR, type OrderStatus} from '@/types/order.types'
 
+export async function resolveOrderProfessionalsAction(input: {modelIds: string[]}) {
+    const sessionClient = await createSupabaseServerClient()
+    const {data: {user}} = await sessionClient.auth.getUser()
+    if (!user) return {success: false, error: 'unauthorized', assignments: {} as Record<string, string>}
+
+    const role = getUserRole(user)
+    if (!isProfessionalRole(role)) return {success: false, error: 'forbidden', assignments: {} as Record<string, string>}
+
+    const uniqueIds = [...new Set(input.modelIds.filter(Boolean))]
+    if (uniqueIds.length === 0) {
+        return {success: true as const, assignments: {} as Record<string, string>}
+    }
+
+    const supabase = createSupabaseServiceClient()
+    const {data, error} = await supabase
+        .from('modeles')
+        .select('id, professional_id')
+        .in('id', uniqueIds)
+
+    if (error) {
+        return {success: false, error: error.message, assignments: {} as Record<string, string>}
+    }
+
+    const assignments: Record<string, string> = {}
+    for (const row of data ?? []) {
+        if (row.professional_id) {
+            assignments[row.id] = row.professional_id
+        }
+    }
+
+    return {success: true as const, assignments}
+}
+
 export async function remindCouturierAction(input: {
     orderNumber: string
     professionalId: string | null | undefined

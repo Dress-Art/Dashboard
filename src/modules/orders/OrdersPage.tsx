@@ -6,7 +6,7 @@ import { useAuthContext } from '@/contexts/AuthContext'
 import { notify } from '@/lib/toast'
 import { listTissus } from '@/lib/tissus-api'
 import { createDeliveryFromOrderAction } from '@/app/actions/deliveries'
-import { remindCouturierAction } from '@/app/actions/orders'
+import { remindCouturierAction, resolveOrderProfessionalsAction } from '@/app/actions/orders'
 import {
     type OrderStatus,
     type OrderPaymentStatus,
@@ -30,6 +30,7 @@ interface Order {
     customerEmail?: string
     appointmentDate?: string
     location?: string
+    model_id?: string | null
     /** Mesures snapshotées sur la commande (clé = nom mesure, valeur = {value,unit}). */
     measurements?: OrderMeasurements | null
     /**
@@ -387,8 +388,18 @@ export function OrdersPage() {
             setLoading(true)
             const data = await adminAPI.getOrders({ search, status: statusFilter })
             const raw: Order[] = data.orders ?? []
+            const modelIds = raw.map(order => order.model_id).filter(Boolean) as string[]
+            const resolved = modelIds.length > 0
+                ? await resolveOrderProfessionalsAction({modelIds})
+                : {success: true as const, assignments: {} as Record<string, string>}
+
+            const professionalAssignments = resolved.success ? resolved.assignments : {}
             // Normalise les anciens statuts (backend marketplace pas encore migré)
-            setOrders(raw.map(o => ({...o, status: normalizeStatus(o.status as string)})))
+            setOrders(raw.map(o => ({
+                ...o,
+                status: normalizeStatus(o.status as string),
+                professional_id: o.professional_id ?? (o.model_id ? professionalAssignments[o.model_id] : undefined),
+            })))
         } catch (err) {
             notify.error(err)
         } finally {
