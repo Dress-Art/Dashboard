@@ -88,6 +88,17 @@ const NEXT_STATUS_LABEL: Partial<Record<OrderStatus, string>> = {
     ready_for_delivery: 'Marquer livré',
 }
 
+function formatReminderError(error: string | null | undefined): string {
+    if (!error) return 'Impossible d\'envoyer le rappel'
+    if (error === 'unauthorized') return 'Session expirée. Reconnectez-vous.'
+    if (error === 'forbidden') return 'Action réservée à un administrateur.'
+    if (error === 'no_couturier_linked') return 'Aucun couturier rattaché à cette commande.'
+    if (error === 'couturier_not_found') return 'Couturier introuvable dans les comptes.'
+    if (error === 'couturier_phone_missing') return 'Le couturier n\'a pas de numéro de téléphone.'
+    if (error.startsWith('evolution_')) return `Relance WhatsApp échouée (${error})`
+    return `Relance WhatsApp échouée (${error})`
+}
+
 /** Onglets de filtrage (regroupement métier des 8 statuts). */
 const STATUS_TABS: ReadonlyArray<{id: 'all' | OrderStatus; label: string}> = [
     {id: 'all', label: 'Toutes'},
@@ -510,7 +521,12 @@ export function OrdersPage() {
             })
 
             if (!result.success) {
-                notify.error(result.error ?? 'Impossible d’envoyer le rappel')
+                console.error('remindCouturier failed', {
+                    orderNumber: order.orderNumber,
+                    professionalId: order.professional_id,
+                    error: result.error,
+                })
+                notify.error(formatReminderError(result.error))
                 return
             }
 
@@ -858,6 +874,7 @@ export function OrdersPage() {
                                                                         try {
                                                                             const res = await manualAssignCouturierAction({orderId: selectedOrder.id, couturierId: c.id})
                                                                             if (!res.success) {
+                                                                                console.error('manualAssign failed', {orderId: selectedOrder.id, couturierId: c.id, error: res.error})
                                                                                 notify.error(res.error ?? 'Impossible d\'assigner le couturier')
                                                                                 return
                                                                             }
@@ -875,7 +892,9 @@ export function OrdersPage() {
                                                                             ))
                                                                             setSearchCouturier('')
                                                                         } catch (err) {
-                                                                            notify.error(err)
+                                                                            console.error('manualAssign unexpected error', err)
+                                                                            const message = err instanceof Error ? err.message : String(err)
+                                                                            notify.error(message)
                                                                         } finally {
                                                                             setAssigningCouturierId(null)
                                                                         }

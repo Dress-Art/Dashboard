@@ -248,57 +248,66 @@ export async function listCouturiersAction() {
 }
 
 export async function manualAssignCouturierAction(input: {orderId: string; couturierId: string}) {
-    const sessionClient = await createSupabaseServerClient()
-    const {data: {user}} = await sessionClient.auth.getUser()
-    if (!user) return {success: false, error: 'unauthorized'}
+    try {
+        const sessionClient = await createSupabaseServerClient()
+        const {data: {user}} = await sessionClient.auth.getUser()
+        if (!user) return {success: false, error: 'unauthorized'}
 
-    const role = getUserRole(user)
-    if (!isProfessionalRole(role) || role !== 'admin') return {success: false, error: 'forbidden'}
+        const role = getUserRole(user)
+        if (!isProfessionalRole(role) || role !== 'admin') return {success: false, error: 'forbidden'}
 
-    const supabase = createSupabaseServiceClient()
+        const supabase = createSupabaseServiceClient()
 
-    // Verify that couturierId exists and is a couturier
-    const {data: couturierData, error: couturierError} = await supabase.auth.admin.getUserById(input.couturierId)
-    if (couturierError || !couturierData.user) {
-        return {success: false, error: 'couturier_not_found'}
+        // Verify that couturierId exists and is a couturier
+        const {data: couturierData, error: couturierError} = await supabase.auth.admin.getUserById(input.couturierId)
+        if (couturierError || !couturierData.user) {
+            console.error('manualAssign: couturier not found', {couturierId: input.couturierId, couturierError})
+            return {success: false, error: 'couturier_not_found'}
+        }
+
+        const couturierRole = getUserRole(couturierData.user)
+        if (couturierRole !== 'couturier') {
+            console.error('manualAssign: user role mismatch', {couturierId: input.couturierId, role: couturierRole})
+            return {success: false, error: 'user_is_not_couturier'}
+        }
+
+        // Update order with new professional_id
+        const {data: updated, error: updateError} = await supabase
+            .from('orders')
+            .update({professional_id: input.couturierId})
+            .eq('id', input.orderId)
+            .select('*')
+            .single()
+
+        if (updateError || !updated) {
+            console.error('manualAssign: db update failed', {orderId: input.orderId, updateError})
+            return {success: false, error: updateError?.message || 'Failed to assign'}
+        }
+
+        // Send welcome message to couturier
+        const couturierPhone = couturierData.user.phone
+        if (couturierPhone) {
+            void (async () => {
+                try {
+                    const {normalizePhoneForEvolution, sendWhatsAppText} = await import('@/lib/evolution-api')
+                    const normalizedPhone = normalizePhoneForEvolution(couturierPhone)
+                    const couturierName = couturierData.user.user_metadata?.name as string | undefined
+                    const couturierContactName = couturierName ? ` ${couturierName}` : ''
+                    await sendWhatsAppText(
+                        normalizedPhone,
+                        `DressArt: Bonjour${couturierContactName}, une nouvelle commande vous a été assignée. Veuillez démarrer les préparatifs. Merci!`,
+                    )
+                } catch (err) {
+                    console.error('Failed to send assignment notification:', err)
+                }
+            })()
+        }
+
+        return {success: true as const, order: updated}
+    } catch (err) {
+        console.error('manualAssignCouturierAction unexpected error', err)
+        const message = err instanceof Error ? err.message : String(err)
+        return {success: false, error: message}
     }
-
-    const couturierRole = getUserRole(couturierData.user)
-    if (couturierRole !== 'couturier') {
-        return {success: false, error: 'user_is_not_couturier'}
-    }
-
-    // Update order with new professional_id
-    const {data: updated, error: updateError} = await supabase
-        .from('orders')
-        .update({professional_id: input.couturierId})
-        .eq('id', input.orderId)
-        .select('*')
-        .single()
-
-    if (updateError || !updated) {
-        return {success: false, error: updateError?.message || 'Failed to assign'}
-    }
-
-    // Send welcome message to couturier
-    const couturierPhone = couturierData.user.phone
-    if (couturierPhone) {
-        void (async () => {
-            try {
-                const {normalizePhoneForEvolution, sendWhatsAppText} = await import('@/lib/evolution-api')
-                const normalizedPhone = normalizePhoneForEvolution(couturierPhone)
-                const couturierName = couturierData.user.user_metadata?.name as string | undefined
-                const couturierContactName = couturierName ? ` ${couturierName}` : ''
-                await sendWhatsAppText(
-                    normalizedPhone,
-                    `DressArt: Bonjour${couturierContactName}, une nouvelle commande vous a été assignée. Veuillez démarrer les préparatifs. Merci!`,
-                )
-            } catch (err) {
-                console.error('Failed to send assignment notification:', err)
-            }
-        })()
-    }
-
-    return {success: true as const, order: updated}
 }
 
