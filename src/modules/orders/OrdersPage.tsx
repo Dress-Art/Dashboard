@@ -862,8 +862,18 @@ export function OrdersPage() {
                                                                                 return
                                                                             }
                                                                             notify.success('Couturier assigné', `${c.name} a été affecté à la commande`)
+                                                                            setProfessionalNames(prev => ({...prev, [c.id]: c.name}))
+                                                                            setOrders(prev => prev.map(order => (
+                                                                                order.id === selectedOrder.id
+                                                                                    ? {...order, professional_id: c.id}
+                                                                                    : order
+                                                                            )))
+                                                                            setSelectedOrder(prev => (
+                                                                                prev && prev.id === selectedOrder.id
+                                                                                    ? {...prev, professional_id: c.id}
+                                                                                    : prev
+                                                                            ))
                                                                             setSearchCouturier('')
-                                                                            await load()
                                                                         } catch (err) {
                                                                             notify.error(err)
                                                                         } finally {
