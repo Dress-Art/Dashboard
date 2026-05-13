@@ -60,7 +60,7 @@ export async function sendWhatsAppText(to: string, text: string): Promise<SendRe
                 'Content-Type': 'application/json',
                 apikey: config.apiKey,
             },
-            body: JSON.stringify({number, text}),
+            body: JSON.stringify({number, textMessage: text}),
         })
 
         if (!res.ok) {
