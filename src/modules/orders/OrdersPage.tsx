@@ -7,6 +7,7 @@ import { notify } from '@/lib/toast'
 import { listTissus } from '@/lib/tissus-api'
 import { createDeliveryFromOrderAction } from '@/app/actions/deliveries'
 import { remindCouturierAction, resolveOrderProfessionalsAction, acceptCouturierSuggestionAction, revokeCouturierSuggestionAction, listCouturiersAction, manualAssignCouturierAction } from '@/app/actions/orders'
+import { updateCouturierPhoneAction } from '@/app/actions/admin'
 import {
     type OrderStatus,
     type OrderPaymentStatus,
@@ -338,6 +339,8 @@ export function OrdersPage() {
     const [couturiers, setCouturiers] = useState<Array<{id: string; name: string; email: string}>>([])
     const [searchCouturier, setSearchCouturier] = useState('')
     const [assigningCouturierId, setAssigningCouturierId] = useState<string | null>(null)
+    const [editingPhoneId, setEditingPhoneId] = useState<string | null>(null)
+    const [phoneInput, setPhoneInput] = useState('')
 
     /**
      * Liste des fabric_id appartenant au vendeur connecté. Chargée 1 fois si
@@ -840,13 +843,69 @@ export function OrdersPage() {
                                                         <p className="text-sm font-semibold text-black dark:text-white">Rappel couturier</p>
                                                         <p className="text-xs text-gray-600 dark:text-gray-400">Relance WhatsApp du couturier rattaché à cette commande.</p>
                                                     </div>
-                                                    <button
-                                                        onClick={() => handleRemindCouturier(selectedOrder)}
-                                                        disabled={remindingCouturierId === selectedOrder.orderNumber}
-                                                        className="px-4 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 transition-colors"
-                                                    >
-                                                        {remindingCouturierId === selectedOrder.orderNumber ? 'Envoi…' : 'Relancer'}
-                                                    </button>
+                                                    {editingPhoneId !== selectedOrder.professional_id && (
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => handleRemindCouturier(selectedOrder)}
+                                                                disabled={remindingCouturierId === selectedOrder.orderNumber}
+                                                                className="flex-1 px-4 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                                                            >
+                                                                {remindingCouturierId === selectedOrder.orderNumber ? 'Envoi…' : 'Relancer'}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingPhoneId(selectedOrder.professional_id || null)
+                                                                    setPhoneInput('')
+                                                                }}
+                                                                className="px-3 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 rounded-xl text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800"
+                                                            >
+                                                                ✎ Téléphone
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    {editingPhoneId === selectedOrder.professional_id && (
+                                                        <div className="flex gap-2">
+                                                            <input
+                                                                type="tel"
+                                                                placeholder="Ex: +229 61 19 89 41"
+                                                                value={phoneInput}
+                                                                onChange={(e) => setPhoneInput(e.target.value)}
+                                                                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white text-sm"
+                                                            />
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (!phoneInput.trim()) {
+                                                                        notify.error('Veuillez entrer un numéro de téléphone')
+                                                                        return
+                                                                    }
+                                                                    try {
+                                                                        const res = await updateCouturierPhoneAction({couturierId: selectedOrder.professional_id!, phone: phoneInput})
+                                                                        if (!res.success) {
+                                                                            notify.error(res.error ?? 'Impossible de mettre à jour le téléphone')
+                                                                            return
+                                                                        }
+                                                                        notify.success('Téléphone mis à jour', 'Vous pouvez maintenant relancer.')
+                                                                        setEditingPhoneId(null)
+                                                                        setPhoneInput('')
+                                                                    } catch (err) {
+                                                                        notify.error(err)
+                                                                    }
+                                                                }}
+                                                                className="px-3 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-200"
+                                                            >
+                                                                OK
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingPhoneId(null)
+                                                                    setPhoneInput('')
+                                                                }}
+                                                                className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
 
