@@ -323,6 +323,10 @@ export async function getOrdersWithAssignmentsAction(params?: {search?: string; 
         const supabase = createSupabaseServiceClient()
         let query = supabase.from('orders').select('id, orderNumber, professional_id')
 
+   if (params?.status && params.status !== 'all') {
+       query = query.eq('status', params.status)
+   }
+
         if (params?.search) {
             const search = params.search.toLowerCase()
             query = query.or(`orderNumber.ilike.%${search}%`)

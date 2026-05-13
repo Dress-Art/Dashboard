@@ -888,6 +888,8 @@ export function OrdersPage() {
                                                                             notify.success('Couturier assigné', `${c.name} a été affecté à la commande`)
                                                                             setProfessionalNames(prev => ({...prev, [c.id]: c.name}))
                                                                             setSearchCouturier('')
+                                                                                                                                       // Update selectedOrder to reflect the assignment
+                                                                                                                                       setSelectedOrder(prev => prev ? {...prev, professional_id: c.id} : null)
                                                                             await load()
                                                                         } catch (err) {
                                                                             console.error('manualAssign unexpected error', err)
