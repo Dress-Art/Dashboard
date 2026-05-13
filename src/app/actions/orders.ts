@@ -237,12 +237,7 @@ export async function listCouturiersAction() {
     }
 
     const couturiers = data.users
-        .filter((u) => {
-            // Only include users with role === 'couturier' in metadata
-            const appMetadata = (u.app_metadata as Record<string, unknown> | null) ?? {}
-            const userRole = appMetadata['role'] as string | undefined
-            return userRole === 'couturier' && u.id && (u.email || u.phone)
-        })
+        .filter((u) => getUserRole(u) === 'couturier' && u.id && (u.email || u.phone))
         .map((u) => ({
             id: u.id,
             name: (u.user_metadata?.name as string | undefined) ?? u.email?.split('@')[0] ?? 'Couturier',
@@ -268,8 +263,7 @@ export async function manualAssignCouturierAction(input: {orderId: string; coutu
         return {success: false, error: 'couturier_not_found'}
     }
 
-    const couturierAppMetadata = (couturierData.user.app_metadata as Record<string, unknown> | null) ?? {}
-    const couturierRole = couturierAppMetadata['role'] as string | undefined
+    const couturierRole = getUserRole(couturierData.user)
     if (couturierRole !== 'couturier') {
         return {success: false, error: 'user_is_not_couturier'}
     }
