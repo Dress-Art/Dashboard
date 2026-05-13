@@ -56,6 +56,10 @@ function buildDriverAssignmentMessage(delivery: DeliveryRow, driverName?: string
         `Adresse: ${delivery.customer_address}`,
         `Tracking: ${trackingUrl}`,
         `Statut: ${DELIVERY_STATUS_LABELS_FR[delivery.status]}`,
+        'Actions WhatsApp rapides :',
+        `PICKUP ${delivery.tracking_token}`,
+        `TRANSIT ${delivery.tracking_token}`,
+        `DELIVERED ${delivery.tracking_token} NomReception`,
     ]
         .filter(Boolean)
         .join('\n')
