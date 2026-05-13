@@ -10,6 +10,7 @@ interface UserEntity {
     id: string
     email: string
     name?: string
+    phone?: string
     role: Role | string
     status: 'active' | 'inactive' | 'suspended'
     created_at: string
@@ -495,6 +496,7 @@ export function UsersPage() {
                             const formData = new FormData(e.target as HTMLFormElement)
                             const updates = {
                                 name: formData.get('name') as string,
+                                phone: formData.get('phone') as string,
                                 role: formData.get('role') as string,
                                 status: formData.get('status') as 'active' | 'inactive' | 'suspended',
                             }
@@ -505,6 +507,13 @@ export function UsersPage() {
                                 type="text"
                                 defaultValue={editingUser.name || ''}
                                 placeholder={t('form.name')}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white"
+                            />
+                            <input
+                                name="phone"
+                                type="tel"
+                                defaultValue={editingUser.phone || ''}
+                                placeholder="Numéro de téléphone (ex: +229 61 19 89 41)"
                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-black dark:text-white"
                             />
                             <select
@@ -567,6 +576,16 @@ export function UsersPage() {
                                 </div>
                             </div>
                             <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500 dark:text-gray-400">Email</span>
+                                    <span className="font-medium text-black dark:text-white">{viewingUser.email}</span>
+                                </div>
+                                {viewingUser.phone && (
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500 dark:text-gray-400">Téléphone</span>
+                                        <span className="font-medium text-black dark:text-white">{viewingUser.phone}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between">
                                     <span className="text-gray-500 dark:text-gray-400">Rôle</span>
                                     <span className="font-medium text-black dark:text-white">{viewingUser.role}</span>
