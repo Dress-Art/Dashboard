@@ -18,6 +18,7 @@ export interface DriverEntry {
     id: string
     name: string
     email: string
+    phone: string | null
 }
 
 export interface ListDriversResult {
@@ -55,6 +56,7 @@ export async function listDriversForAssignment(): Promise<ListDriversResult> {
                 id: u.id,
                 name: name || u.email || u.phone || u.id,
                 email: u.email ?? '',
+                phone: u.phone ?? null,
             }
         })
 

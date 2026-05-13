@@ -3,11 +3,10 @@
 import {useState, useEffect, useCallback, useMemo} from 'react'
 import {
     listDeliveries,
-    assignDelivery,
-    updateDeliveryStatus,
     type DeliveryRow,
 } from '@/lib/deliveries-api'
 import {listDriversForAssignment, type DriverEntry} from '@/app/actions/drivers'
+import {assignDeliveryAction, updateDeliveryStatusAction} from '@/app/actions/deliveries'
 import {notify} from '@/lib/toast'
 import {DeliveryTable, type DeliveryEntity} from './DeliveryTable'
 import {CheckIcon, ArrowDownTrayIcon} from '@heroicons/react/24/outline'
@@ -140,11 +139,19 @@ export function DeliveryPage() {
         }
         try {
             setActionLoading(`assign-${selectedDelivery.id}`)
-            await assignDelivery(selectedDelivery.id, {
+            const selectedDriver = availableDrivers.find(d => d.id === assignForm.driverId)
+            const result = await assignDeliveryAction({
+                deliveryId: selectedDelivery.id,
                 driverId: assignForm.driverId,
                 priority: assignForm.priority,
                 estimatedTime: assignForm.estimatedTime || null,
+                driverPhone: selectedDriver?.phone,
+                driverName: selectedDriver?.name,
             })
+            if (!result.success) {
+                notify.error(result.error ?? 'Erreur assignation')
+                return
+            }
             notify.success(
                 `Livraison #${selectedDelivery.orderId}`,
                 `Assignée à ${availableDrivers.find(d => d.id === assignForm.driverId)?.name ?? 'livreur'}`,
@@ -164,7 +171,11 @@ export function DeliveryPage() {
     const handleAdvance = async (delivery: DeliveryEntity, next: DeliveryStatus) => {
         try {
             setActionLoading(`advance-${delivery.id}`)
-            await updateDeliveryStatus(delivery.id, next)
+            const result = await updateDeliveryStatusAction({deliveryId: delivery.id, status: next})
+            if (!result.success) {
+                notify.error(result.error ?? 'Erreur mise à jour')
+                return
+            }
             notify.success(
                 `Livraison #${delivery.orderId}`,
                 `→ ${DELIVERY_STATUS_LABELS_FR[next]}`,
@@ -182,7 +193,11 @@ export function DeliveryPage() {
         if (isDeliveryTerminal(delivery.status)) return
         try {
             setActionLoading(`cancel-${delivery.id}`)
-            await updateDeliveryStatus(delivery.id, 'cancelled')
+            const result = await updateDeliveryStatusAction({deliveryId: delivery.id, status: 'cancelled'})
+            if (!result.success) {
+                notify.error(result.error ?? 'Erreur annulation')
+                return
+            }
             notify.success(`Livraison #${delivery.orderId}`, 'Annulée')
             await loadDeliveries()
         } catch (err) {
