@@ -437,7 +437,7 @@ export function OrdersPage() {
                 ...o,
                 status: normalizeStatus(o.status as string),
                 // Use assignment from Supabase if available, otherwise fall back to model-based assignment
-                professional_id: assignmentMap[o.id] ?? (o.model_id ? professionalAssignments[o.model_id] : undefined),
+                professional_id: assignmentMap[o.orderNumber] ?? assignmentMap[o.id] ?? (o.model_id ? professionalAssignments[o.model_id] : undefined),
             })))
         } catch (err) {
             notify.error(err)
@@ -888,8 +888,7 @@ export function OrdersPage() {
                                                                             notify.success('Couturier assigné', `${c.name} a été affecté à la commande`)
                                                                             setProfessionalNames(prev => ({...prev, [c.id]: c.name}))
                                                                             setSearchCouturier('')
-                                                                                                                                       // Update selectedOrder to reflect the assignment
-                                                                                                                                       setSelectedOrder(prev => prev ? {...prev, professional_id: c.id} : null)
+                                                                            setSelectedOrder(prev => prev ? {...prev, professional_id: c.id} : null)
                                                                             await load()
                                                                         } catch (err) {
                                                                             console.error('manualAssign unexpected error', err)

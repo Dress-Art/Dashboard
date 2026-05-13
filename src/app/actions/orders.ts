@@ -274,7 +274,7 @@ export async function manualAssignCouturierAction(input: {orderId: string; order
         const {data: updated, error: updateError} = await supabase
             .from('orders')
             .update({professional_id: input.couturierId})
-            .eq('id', input.orderId)
+            .eq('order_number', input.orderNumber)
             .select('*')
             .single()
 
@@ -321,15 +321,15 @@ export async function getOrdersWithAssignmentsAction(params?: {search?: string; 
 
         // Get orders from marketplace (has all denormalized display fields)
         const supabase = createSupabaseServiceClient()
-        let query = supabase.from('orders').select('id, orderNumber, professional_id')
+        let query = supabase.from('orders').select('id, order_number, professional_id')
 
-   if (params?.status && params.status !== 'all') {
-       query = query.eq('status', params.status)
-   }
+        if (params?.status && params.status !== 'all') {
+            query = query.eq('status', params.status)
+        }
 
         if (params?.search) {
             const search = params.search.toLowerCase()
-            query = query.or(`orderNumber.ilike.%${search}%`)
+            query = query.or(`order_number.ilike.%${search}%`)
         }
 
         const {data: assignments, error: assignmentError} = await query
@@ -339,12 +339,13 @@ export async function getOrdersWithAssignmentsAction(params?: {search?: string; 
             // Continue anyway - marketplace data doesn't need this
         }
 
-        // Build a map of orderId → professional_id
+        // Build a map of order identifiers → professional_id
         const assignmentMap: Record<string, string> = {}
         if (assignments) {
             for (const order of assignments) {
                 if (order.professional_id) {
                     assignmentMap[order.id] = order.professional_id
+                    assignmentMap[order.order_number] = order.professional_id
                 }
             }
         }
