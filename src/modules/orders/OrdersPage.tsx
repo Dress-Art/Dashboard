@@ -6,6 +6,7 @@ import { useAuthContext } from '@/contexts/AuthContext'
 import { notify } from '@/lib/toast'
 import { listTissus } from '@/lib/tissus-api'
 import { createDeliveryFromOrderAction } from '@/app/actions/deliveries'
+import { remindCouturierAction } from '@/app/actions/orders'
 import {
     type OrderStatus,
     type OrderPaymentStatus,
@@ -320,6 +321,7 @@ export function OrdersPage() {
     const [editingMeasurements, setEditingMeasurements] = useState(false)
     const [savingMeasurements, setSavingMeasurements] = useState(false)
     const [launchingDeliveryId, setLaunchingDeliveryId] = useState<string | null>(null)
+    const [remindingCouturierId, setRemindingCouturierId] = useState<string | null>(null)
 
     /**
      * Liste des fabric_id appartenant au vendeur connecté. Chargée 1 fois si
@@ -457,6 +459,37 @@ export function OrdersPage() {
             notify.error(err)
         } finally {
             setLaunchingDeliveryId(null)
+        }
+    }
+
+    const handleRemindCouturier = async (order: Order) => {
+        if (!order.professional_id) {
+            notify.error('Aucun couturier rattaché à cette commande.')
+            return
+        }
+
+        setRemindingCouturierId(order.orderNumber)
+        try {
+            const result = await remindCouturierAction({
+                orderNumber: order.orderNumber,
+                professionalId: order.professional_id,
+                modelName: order.modelName,
+                status: order.status,
+            })
+
+            if (!result.success) {
+                notify.error(result.error ?? 'Impossible d’envoyer le rappel')
+                return
+            }
+
+            notify.success(
+                `Rappel envoyé`,
+                result.skipped ? 'Evolution non configurée, aucune notification n’a été envoyée.' : `Couturier relancé pour ${order.orderNumber}`,
+            )
+        } catch (err) {
+            notify.error(err)
+        } finally {
+            setRemindingCouturierId(null)
         }
     }
 
@@ -673,6 +706,29 @@ export function OrdersPage() {
                                         {selectedOrder.status !== 'ready_for_delivery' && (
                                             <p className="text-xs text-amber-700 dark:text-amber-300">
                                                 Cette action sera activée quand la commande atteindra le statut “Prêt pour livraison”.
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {role === 'admin' && (
+                                    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 p-4 space-y-3">
+                                        <div>
+                                            <p className="text-sm font-semibold text-black dark:text-white">Rappel couturier</p>
+                                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                                                Relance WhatsApp du couturier rattaché à cette commande.
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => handleRemindCouturier(selectedOrder)}
+                                            disabled={remindingCouturierId === selectedOrder.orderNumber || !selectedOrder.professional_id}
+                                            className="px-4 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                                        >
+                                            {remindingCouturierId === selectedOrder.orderNumber ? 'Envoi…' : 'Relancer le couturier'}
+                                        </button>
+                                        {!selectedOrder.professional_id && (
+                                            <p className="text-xs text-amber-700 dark:text-amber-300">
+                                                Aucun couturier n’est rattaché à cette commande.
                                             </p>
                                         )}
                                     </div>
