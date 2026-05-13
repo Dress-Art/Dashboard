@@ -39,6 +39,26 @@ export async function resolveOrderProfessionalsAction(input: {modelIds: string[]
     return {success: true as const, assignments}
 }
 
+export async function acceptCouturierSuggestionAction(input: {orderId: string; professionalId: string}) {
+    const sessionClient = await createSupabaseServerClient()
+    const {data: {user}} = await sessionClient.auth.getUser()
+    if (!user) return {success: false, error: 'unauthorized'}
+
+    const role = getUserRole(user)
+    if (!isProfessionalRole(role) || role !== 'admin') return {success: false, error: 'forbidden'}
+
+    const supabase = createSupabaseServiceClient()
+    const {data, error} = await supabase
+        .from('orders')
+        .update({professional_id: input.professionalId})
+        .eq('id', input.orderId)
+        .select('*')
+        .single()
+
+    if (error) return {success: false, error: error.message}
+    return {success: true as const, order: data}
+}
+
 export async function remindCouturierAction(input: {
     orderNumber: string
     professionalId: string | null | undefined

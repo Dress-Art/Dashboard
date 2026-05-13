@@ -6,7 +6,7 @@ import { useAuthContext } from '@/contexts/AuthContext'
 import { notify } from '@/lib/toast'
 import { listTissus } from '@/lib/tissus-api'
 import { createDeliveryFromOrderAction } from '@/app/actions/deliveries'
-import { remindCouturierAction, resolveOrderProfessionalsAction } from '@/app/actions/orders'
+import { remindCouturierAction, resolveOrderProfessionalsAction, acceptCouturierSuggestionAction } from '@/app/actions/orders'
 import {
     type OrderStatus,
     type OrderPaymentStatus,
@@ -719,6 +719,41 @@ export function OrdersPage() {
                                                 Cette action sera activée quand la commande atteindra le statut “Prêt pour livraison”.
                                             </p>
                                         )}
+                                    </div>
+                                )}
+
+                                {role === 'admin' && selectedOrder && selectedOrder.model_id && selectedOrder.professional_id && (
+                                    <div className="rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/70 dark:bg-blue-950/20 p-4 space-y-3">
+                                        <div>
+                                            <p className="text-sm font-semibold text-black dark:text-white">Couturier suggéré</p>
+                                            <p className="text-xs text-gray-600 dark:text-gray-400">Suggestion déduite du modèle associé à la commande.</p>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">ID: {selectedOrder.professional_id}</span>
+                                            <button
+                                                onClick={async () => {
+                                                    setLaunchingDeliveryId(null) // ensure separate state not reused
+                                                    setRemindingCouturierId(null)
+                                                    try {
+                                                        setLaunchingDeliveryId(selectedOrder.orderNumber)
+                                                        const res = await acceptCouturierSuggestionAction({orderId: selectedOrder.id, professionalId: selectedOrder.professional_id!})
+                                                        if (!res.success) {
+                                                            notify.error(res.error ?? 'Impossible d\'accepter la suggestion')
+                                                            return
+                                                        }
+                                                        notify.success('Suggestion acceptée', 'Le couturier a été affecté à la commande')
+                                                        await load()
+                                                    } catch (err) {
+                                                        notify.error(err)
+                                                    } finally {
+                                                        setLaunchingDeliveryId(null)
+                                                    }
+                                                }}
+                                                className="px-3 py-1.5 bg-black dark:bg-white text-white dark:text-black rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-200"
+                                            >
+                                                Accepter la suggestion
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
 
