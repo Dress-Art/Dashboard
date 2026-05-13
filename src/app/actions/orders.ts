@@ -270,38 +270,17 @@ export async function manualAssignCouturierAction(input: {orderId: string; order
             return {success: false, error: 'user_is_not_couturier'}
         }
 
-        const marketplaceUrl = (process.env.MARKETPLACE_URL ?? 'http://localhost:3000').replace(/\/$/, '')
-        const adminKey = process.env.ADMIN_SECRET_KEY ?? ''
-        const selfReferential = !process.env.MARKETPLACE_URL || ['http://localhost:3000', 'http://127.0.0.1:3000'].includes(marketplaceUrl)
-        if (selfReferential) {
-            console.error('manualAssign: marketplace URL misconfigured')
-            return {success: false, error: 'marketplace_url_misconfigured'}
-        }
-        if (!adminKey) {
-            console.error('manualAssign: admin key missing')
-            return {success: false, error: 'marketplace_admin_key_missing'}
-        }
+        // Update the local dashboard orders table with the professional_id assignment
+        const {data: updated, error: updateError} = await supabase
+            .from('orders')
+            .update({professional_id: input.couturierId})
+            .eq('id', input.orderId)
+            .select('*')
+            .single()
 
-        const response = await fetch(`${marketplaceUrl}/api/orders/${input.orderNumber}`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-admin-key': adminKey,
-            },
-            body: JSON.stringify({professional_id: input.couturierId}),
-        })
-
-        const responseText = await response.text()
-        if (!response.ok) {
-            console.error('manualAssign: marketplace patch failed', {orderNumber: input.orderNumber, status: response.status, preview: responseText.slice(0, 300)})
-            return {success: false, error: `marketplace_${response.status}`}
-        }
-
-        let updated: unknown = null
-        try {
-            updated = responseText ? JSON.parse(responseText) : null
-        } catch {
-            updated = null
+        if (updateError) {
+            console.error('manualAssign: local update failed', {orderId: input.orderId, updateError})
+            return {success: false, error: updateError.message}
         }
 
         const couturierPhone = couturierData.user.phone
@@ -322,7 +301,7 @@ export async function manualAssignCouturierAction(input: {orderId: string; order
             })()
         }
 
-        return {success: true as const, order: updated ?? {id: input.orderId, professional_id: input.couturierId}}
+        return {success: true as const, order: updated}
     } catch (err) {
         console.error('manualAssignCouturierAction unexpected error', err)
         const message = err instanceof Error ? err.message : String(err)
