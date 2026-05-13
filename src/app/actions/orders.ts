@@ -9,14 +9,14 @@ import {ORDER_STATUS_LABELS_FR, type OrderStatus} from '@/types/order.types'
 export async function resolveOrderProfessionalsAction(input: {modelIds: string[]}) {
     const sessionClient = await createSupabaseServerClient()
     const {data: {user}} = await sessionClient.auth.getUser()
-    if (!user) return {success: false, error: 'unauthorized', assignments: {} as Record<string, string>}
+    if (!user) return {success: false, error: 'unauthorized', assignments: {} as Record<string, string>, professionalNames: {} as Record<string, string>}
 
     const role = getUserRole(user)
-    if (!isProfessionalRole(role)) return {success: false, error: 'forbidden', assignments: {} as Record<string, string>}
+    if (!isProfessionalRole(role)) return {success: false, error: 'forbidden', assignments: {} as Record<string, string>, professionalNames: {} as Record<string, string>}
 
     const uniqueIds = [...new Set(input.modelIds.filter(Boolean))]
     if (uniqueIds.length === 0) {
-        return {success: true as const, assignments: {} as Record<string, string>}
+        return {success: true as const, assignments: {} as Record<string, string>, professionalNames: {} as Record<string, string>}
     }
 
     const supabase = createSupabaseServiceClient()
@@ -26,17 +26,34 @@ export async function resolveOrderProfessionalsAction(input: {modelIds: string[]
         .in('id', uniqueIds)
 
     if (error) {
-        return {success: false, error: error.message, assignments: {} as Record<string, string>}
+        return {success: false, error: error.message, assignments: {} as Record<string, string>, professionalNames: {} as Record<string, string>}
     }
 
     const assignments: Record<string, string> = {}
+    const professionalIds = new Set<string>()
     for (const row of data ?? []) {
         if (row.professional_id) {
             assignments[row.id] = row.professional_id
+            professionalIds.add(row.professional_id)
         }
     }
 
-    return {success: true as const, assignments}
+    // Load professional names from auth.users
+    const professionalNames: Record<string, string> = {}
+    if (professionalIds.size > 0) {
+        const {data: users, error: usersError} = await supabase.auth.admin.listUsers()
+        if (!usersError && users?.users) {
+            for (const userId of professionalIds) {
+                const authUser = users.users.find(u => u.id === userId)
+                if (authUser) {
+                    const name = authUser.user_metadata?.name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Couturier'
+                    professionalNames[userId] = name
+                }
+            }
+        }
+    }
+
+    return {success: true as const, assignments, professionalNames}
 }
 
 export async function acceptCouturierSuggestionAction(input: {orderId: string; professionalId: string}) {

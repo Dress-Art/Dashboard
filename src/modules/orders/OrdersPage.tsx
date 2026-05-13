@@ -323,6 +323,7 @@ export function OrdersPage() {
     const [savingMeasurements, setSavingMeasurements] = useState(false)
     const [launchingDeliveryId, setLaunchingDeliveryId] = useState<string | null>(null)
     const [remindingCouturierId, setRemindingCouturierId] = useState<string | null>(null)
+    const [professionalNames, setProfessionalNames] = useState<Record<string, string>>({})
 
     /**
      * Liste des fabric_id appartenant au vendeur connecté. Chargée 1 fois si
@@ -391,9 +392,11 @@ export function OrdersPage() {
             const modelIds = raw.map(order => order.model_id).filter(Boolean) as string[]
             const resolved = modelIds.length > 0
                 ? await resolveOrderProfessionalsAction({modelIds})
-                : {success: true as const, assignments: {} as Record<string, string>}
+                : {success: true as const, assignments: {} as Record<string, string>, professionalNames: {} as Record<string, string>}
 
             const professionalAssignments = resolved.success ? resolved.assignments : {}
+            const names = resolved.success ? (resolved.professionalNames ?? {}) : {}
+            setProfessionalNames(names)
             // Normalise les anciens statuts (backend marketplace pas encore migré)
             setOrders(raw.map(o => ({
                 ...o,
@@ -724,12 +727,19 @@ export function OrdersPage() {
 
                                 {role === 'admin' && selectedOrder && selectedOrder.model_id && selectedOrder.professional_id && (
                                     <div className="rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/70 dark:bg-blue-950/20 p-4 space-y-3">
-                                        <div>
-                                            <p className="text-sm font-semibold text-black dark:text-white">Couturier suggéré</p>
-                                            <p className="text-xs text-gray-600 dark:text-gray-400">Suggestion déduite du modèle associé à la commande.</p>
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-sm font-semibold text-black dark:text-white">Couturier suggéré</p>
+                                                <p className="text-xs text-gray-600 dark:text-gray-400">Suggestion déduite du modèle associé à la commande.</p>
+                                            </div>
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200">
+                                                Suggestion auto-détectée
+                                            </span>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">ID: {selectedOrder.professional_id}</span>
+                                            <span className="text-sm font-medium text-black dark:text-white">
+                                                {professionalNames[selectedOrder.professional_id] || 'Couturier'}
+                                            </span>
                                             <button
                                                 onClick={async () => {
                                                     setLaunchingDeliveryId(null) // ensure separate state not reused
