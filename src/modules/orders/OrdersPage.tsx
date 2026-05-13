@@ -6,7 +6,7 @@ import { useAuthContext } from '@/contexts/AuthContext'
 import { notify } from '@/lib/toast'
 import { listTissus } from '@/lib/tissus-api'
 import { createDeliveryFromOrderAction } from '@/app/actions/deliveries'
-import { remindCouturierAction, resolveOrderProfessionalsAction, acceptCouturierSuggestionAction, revokeCouturierSuggestionAction } from '@/app/actions/orders'
+import { remindCouturierAction, resolveOrderProfessionalsAction, acceptCouturierSuggestionAction, revokeCouturierSuggestionAction, listCouturiersAction, manualAssignCouturierAction } from '@/app/actions/orders'
 import {
     type OrderStatus,
     type OrderPaymentStatus,
@@ -324,6 +324,9 @@ export function OrdersPage() {
     const [launchingDeliveryId, setLaunchingDeliveryId] = useState<string | null>(null)
     const [remindingCouturierId, setRemindingCouturierId] = useState<string | null>(null)
     const [professionalNames, setProfessionalNames] = useState<Record<string, string>>({})
+    const [couturiers, setCouturiers] = useState<Array<{id: string; name: string; email: string}>>([])
+    const [searchCouturier, setSearchCouturier] = useState('')
+    const [assigningCouturierId, setAssigningCouturierId] = useState<string | null>(null)
 
     /**
      * Liste des fabric_id appartenant au vendeur connecté. Chargée 1 fois si
@@ -339,6 +342,21 @@ export function OrdersPage() {
             })
             .catch(err => console.error('Erreur chargement tissus vendeur:', err))
     }, [role, user?.id])
+
+    // Load couturiers list if admin
+    useEffect(() => {
+        if (role !== 'admin') return
+        void (async () => {
+            try {
+                const res = await listCouturiersAction()
+                if (res.success) {
+                    setCouturiers(res.couturiers)
+                }
+            } catch (err) {
+                console.error('Failed to load couturiers:', err)
+            }
+        })()
+    }, [role])
 
     /**
      * Filtre par rôle (côté client). Backend marketplace inchangé pour l'instant.
@@ -810,6 +828,56 @@ export function OrdersPage() {
                                                 Aucun couturier n’est rattaché à cette commande.
                                             </p>
                                         )}
+                                    </div>
+                                )}
+
+                                {role === 'admin' && (
+                                    <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50/70 dark:bg-amber-950/20 p-4 space-y-3">
+                                        <div>
+                                            <p className="text-sm font-semibold text-black dark:text-white">Assignation manuelle</p>
+                                            <p className="text-xs text-gray-600 dark:text-gray-400">Rechercher et assigner un couturier à la commande.</p>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            placeholder="Rechercher un couturier par nom..."
+                                            value={searchCouturier}
+                                            onChange={(e) => setSearchCouturier(e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white text-sm"
+                                        />
+                                        <div className="max-h-48 overflow-y-auto space-y-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 p-2">
+                                            {couturiers
+                                                .filter(c => c.name.toLowerCase().includes(searchCouturier.toLowerCase()) || c.email.toLowerCase().includes(searchCouturier.toLowerCase()))
+                                                .map(c => (
+                                                    <button
+                                                        key={c.id}
+                                                        onClick={async () => {
+                                                            setAssigningCouturierId(c.id)
+                                                            try {
+                                                                const res = await manualAssignCouturierAction({orderId: selectedOrder.id, couturierId: c.id})
+                                                                if (!res.success) {
+                                                                    notify.error(res.error ?? 'Impossible d\'assigner le couturier')
+                                                                    return
+                                                                }
+                                                                notify.success('Couturier assigné', `${c.name} a été affecté à la commande`)
+                                                                setSearchCouturier('')
+                                                                await load()
+                                                            } catch (err) {
+                                                                notify.error(err)
+                                                            } finally {
+                                                                setAssigningCouturierId(null)
+                                                            }
+                                                        }}
+                                                        disabled={assigningCouturierId !== null || selectedOrder.professional_id === c.id}
+                                                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm text-gray-800 dark:text-gray-200"
+                                                    >
+                                                        <div className="font-medium">{c.name}</div>
+                                                        <div className="text-xs text-gray-500 dark:text-gray-400">{c.email}</div>
+                                                    </button>
+                                                ))}
+                                            {couturiers.filter(c => c.name.toLowerCase().includes(searchCouturier.toLowerCase()) || c.email.toLowerCase().includes(searchCouturier.toLowerCase())).length === 0 && (
+                                                <p className="text-xs text-gray-500 p-2 text-center">Aucun couturier trouvé</p>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
 
