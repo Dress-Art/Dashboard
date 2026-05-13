@@ -872,7 +872,7 @@ export function OrdersPage() {
                                                                     onClick={async () => {
                                                                         setAssigningCouturierId(c.id)
                                                                         try {
-                                                                            const res = await manualAssignCouturierAction({orderId: selectedOrder.id, couturierId: c.id})
+                                                                            const res = await manualAssignCouturierAction({orderId: selectedOrder.id, orderNumber: selectedOrder.orderNumber, couturierId: c.id})
                                                                             if (!res.success) {
                                                                                 console.error('manualAssign failed', {orderId: selectedOrder.id, couturierId: c.id, error: res.error})
                                                                                 notify.error(res.error ?? 'Impossible d\'assigner le couturier')
@@ -880,17 +880,8 @@ export function OrdersPage() {
                                                                             }
                                                                             notify.success('Couturier assigné', `${c.name} a été affecté à la commande`)
                                                                             setProfessionalNames(prev => ({...prev, [c.id]: c.name}))
-                                                                            setOrders(prev => prev.map(order => (
-                                                                                order.id === selectedOrder.id
-                                                                                    ? {...order, professional_id: c.id}
-                                                                                    : order
-                                                                            )))
-                                                                            setSelectedOrder(prev => (
-                                                                                prev && prev.id === selectedOrder.id
-                                                                                    ? {...prev, professional_id: c.id}
-                                                                                    : prev
-                                                                            ))
                                                                             setSearchCouturier('')
+                                                                            await load()
                                                                         } catch (err) {
                                                                             console.error('manualAssign unexpected error', err)
                                                                             const message = err instanceof Error ? err.message : String(err)

@@ -247,7 +247,7 @@ export async function listCouturiersAction() {
     return {success: true as const, couturiers}
 }
 
-export async function manualAssignCouturierAction(input: {orderId: string; couturierId: string}) {
+export async function manualAssignCouturierAction(input: {orderId: string; orderNumber: string; couturierId: string}) {
     try {
         const sessionClient = await createSupabaseServerClient()
         const {data: {user}} = await sessionClient.auth.getUser()
@@ -258,7 +258,6 @@ export async function manualAssignCouturierAction(input: {orderId: string; coutu
 
         const supabase = createSupabaseServiceClient()
 
-        // Verify that couturierId exists and is a couturier
         const {data: couturierData, error: couturierError} = await supabase.auth.admin.getUserById(input.couturierId)
         if (couturierError || !couturierData.user) {
             console.error('manualAssign: couturier not found', {couturierId: input.couturierId, couturierError})
@@ -271,20 +270,40 @@ export async function manualAssignCouturierAction(input: {orderId: string; coutu
             return {success: false, error: 'user_is_not_couturier'}
         }
 
-        // Update order with new professional_id
-        const {data: updated, error: updateError} = await supabase
-            .from('orders')
-            .update({professional_id: input.couturierId})
-            .eq('id', input.orderId)
-            .select('*')
-            .single()
-
-        if (updateError || !updated) {
-            console.error('manualAssign: db update failed', {orderId: input.orderId, updateError})
-            return {success: false, error: updateError?.message || 'Failed to assign'}
+        const marketplaceUrl = (process.env.MARKETPLACE_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+        const adminKey = process.env.ADMIN_SECRET_KEY ?? ''
+        const selfReferential = !process.env.MARKETPLACE_URL || ['http://localhost:3000', 'http://127.0.0.1:3000'].includes(marketplaceUrl)
+        if (selfReferential) {
+            console.error('manualAssign: marketplace URL misconfigured')
+            return {success: false, error: 'marketplace_url_misconfigured'}
+        }
+        if (!adminKey) {
+            console.error('manualAssign: admin key missing')
+            return {success: false, error: 'marketplace_admin_key_missing'}
         }
 
-        // Send welcome message to couturier
+        const response = await fetch(`${marketplaceUrl}/api/orders/${input.orderNumber}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-admin-key': adminKey,
+            },
+            body: JSON.stringify({professional_id: input.couturierId}),
+        })
+
+        const responseText = await response.text()
+        if (!response.ok) {
+            console.error('manualAssign: marketplace patch failed', {orderNumber: input.orderNumber, status: response.status, preview: responseText.slice(0, 300)})
+            return {success: false, error: `marketplace_${response.status}`}
+        }
+
+        let updated: unknown = null
+        try {
+            updated = responseText ? JSON.parse(responseText) : null
+        } catch {
+            updated = null
+        }
+
         const couturierPhone = couturierData.user.phone
         if (couturierPhone) {
             void (async () => {
@@ -303,7 +322,7 @@ export async function manualAssignCouturierAction(input: {orderId: string; coutu
             })()
         }
 
-        return {success: true as const, order: updated}
+        return {success: true as const, order: updated ?? {id: input.orderId, professional_id: input.couturierId}}
     } catch (err) {
         console.error('manualAssignCouturierAction unexpected error', err)
         const message = err instanceof Error ? err.message : String(err)
@@ -311,3 +330,33 @@ export async function manualAssignCouturierAction(input: {orderId: string; coutu
     }
 }
 
+
+export async function getOrdersDirectAction(params?: {search?: string; status?: string}) {
+    const sessionClient = await createSupabaseServerClient()
+    const {data: {user}} = await sessionClient.auth.getUser()
+    if (!user) return {success: false, error: 'unauthorized', orders: [] as unknown[]}
+
+    const role = getUserRole(user)
+    if (!isProfessionalRole(role)) return {success: false, error: 'forbidden', orders: [] as unknown[]}
+
+    const supabase = createSupabaseServiceClient()
+    let query = supabase.from('orders').select('*')
+
+    if (params?.status && params.status !== 'all') {
+        query = query.eq('status', params.status)
+    }
+
+    if (params?.search) {
+        const search = params.search.toLowerCase()
+        query = query.or(`orderNumber.ilike.%${search}%,customer_name.ilike.%${search}%,customer_phone.ilike.%${search}%`)
+    }
+
+    const {data, error} = await query
+
+    if (error) {
+        console.error('getOrdersDirectAction error:', error)
+        return {success: false, error: error.message, orders: [] as unknown[]}
+    }
+
+    return {success: true as const, orders: data || []}
+}
