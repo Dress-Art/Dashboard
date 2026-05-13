@@ -74,29 +74,37 @@ function isFromMe(payload: any): boolean {
     return Boolean(payload?.data?.key?.fromMe || payload?.fromMe)
 }
 
-function parseCommand(text: string): {status: DeliveryStatus; token: string; signedByName?: string} | null {
+function parseCommand(text: string): {type: 'delivery_status'; status: DeliveryStatus; token: string; signedByName?: string} | {type: 'claim_order'; orderNumber: string} | null {
     const cleaned = text.trim().replace(/\s+/g, ' ')
-    const match = cleaned.match(
+    
+    // Parse CLAIM <order_number> command
+    const claimMatch = cleaned.match(/^CLAIM\s+([0-9A-Z#-]+)$/i)
+    if (claimMatch) {
+        return {type: 'claim_order', orderNumber: claimMatch[1]}
+    }
+    
+    // Parse delivery status command
+    const statusMatch = cleaned.match(
         /^(PICKUP|PICKED|RECUP|RECUPEREE|RECUPERER|TRANSIT|EN_ROUTE|DELIVERED|DELIVER|LIVREE|LIVRE|CANCEL|CANCELLED|ANNULEE|ANNULE)\s+([0-9a-fA-F-]{36})(?:\s+(.+))?$/i,
     )
 
-    if (!match) return null
+    if (!statusMatch) return null
 
-    const cmd = match[1].toUpperCase()
-    const token = match[2]
-    const signedByName = match[3]?.trim()
+    const cmd = statusMatch[1].toUpperCase()
+    const token = statusMatch[2]
+    const signedByName = statusMatch[3]?.trim()
 
     if (['PICKUP', 'PICKED', 'RECUP', 'RECUPEREE', 'RECUPERER'].includes(cmd)) {
-        return {status: 'picked_up', token}
+        return {type: 'delivery_status', status: 'picked_up', token}
     }
     if (['TRANSIT', 'EN_ROUTE'].includes(cmd)) {
-        return {status: 'in_transit', token}
+        return {type: 'delivery_status', status: 'in_transit', token}
     }
     if (['DELIVERED', 'DELIVER', 'LIVREE', 'LIVRE'].includes(cmd)) {
-        return {status: 'delivered', token, signedByName}
+        return {type: 'delivery_status', status: 'delivered', token, signedByName}
     }
     if (['CANCEL', 'CANCELLED', 'ANNULEE', 'ANNULE'].includes(cmd)) {
-        return {status: 'cancelled', token}
+        return {type: 'delivery_status', status: 'cancelled', token}
     }
     return null
 }
@@ -116,25 +124,84 @@ async function resolveDriverPhone(delivery: DeliveryRow): Promise<string | null>
     return normalizePhoneForEvolution(data.user.phone)
 }
 
-export async function POST(request: NextRequest) {
-    if (!isAuthorizedWebhook(request)) {
-        return NextResponse.json({ok: false, error: 'unauthorized_webhook'}, {status: 401})
+async function handleClaimOrder(orderNumber: string, senderPhone: string): Promise<NextResponse> {
+    const supabase = createSupabaseServiceClient()
+
+    // Retrieve order by orderNumber
+    const {data: orderData, error: orderError} = await supabase
+        .from('orders')
+        .select('id, model_id, professional_id')
+        .eq('orderNumber', orderNumber)
+        .maybeSingle()
+
+    if (orderError || !orderData) {
+        await sendWhatsAppText(senderPhone, `DressArt: Commande #${orderNumber} introuvable.`)
+        return NextResponse.json({ok: true, ignored: 'order_not_found'})
     }
 
-    const payload = await request.json().catch(() => ({}))
-
-    if (isFromMe(payload)) {
-        return NextResponse.json({ok: true, ignored: 'from_me'})
+    // Retrieve couturier user from auth.users by phone
+    const {data: authData, error: authError} = await supabase.auth.admin.listUsers()
+    if (authError || !authData.users) {
+        await sendWhatsAppText(senderPhone, 'DressArt: Erreur lors de la vérification identité.')
+        return NextResponse.json({ok: true, ignored: 'auth_list_failed'})
     }
 
-    const text = extractText(payload)
-    const sender = extractSender(payload)
-    const command = parseCommand(text)
-
-    if (!sender || !command) {
-        return NextResponse.json({ok: true, ignored: 'unrecognized_payload'})
+    const couturierUser = authData.users.find(
+        u => u.phone && normalizePhoneForEvolution(u.phone) === senderPhone
+    )
+    if (!couturierUser) {
+        await sendWhatsAppText(senderPhone, 'DressArt: Profil couturier introuvable.')
+        return NextResponse.json({ok: true, ignored: 'couturier_not_found'})
     }
 
+    // Verify that the couturier's model matches the order's model_id
+    if (orderData.model_id) {
+        const {data: modelData, error: modelError} = await supabase
+            .from('modeles')
+            .select('professional_id')
+            .eq('id', orderData.model_id)
+            .maybeSingle()
+
+        if (!modelError && modelData?.professional_id !== couturierUser.id) {
+            await sendWhatsAppText(senderPhone, 'DressArt: Ce modèle ne vous appartient pas.')
+            return NextResponse.json({ok: true, ignored: 'couturier_not_owner'})
+        }
+    }
+
+    // Check if already assigned to another couturier
+    if (orderData.professional_id && orderData.professional_id !== couturierUser.id) {
+        await sendWhatsAppText(
+            senderPhone,
+            `DressArt: Commande #${orderNumber} est déjà assignée à un autre couturier.`,
+        )
+        return NextResponse.json({ok: true, ignored: 'order_already_assigned'})
+    }
+
+    // Assign order to couturier
+    const {data: updated, error: updateError} = await supabase
+        .from('orders')
+        .update({professional_id: couturierUser.id})
+        .eq('id', orderData.id)
+        .select('*')
+        .single()
+
+    if (updateError || !updated) {
+        await sendWhatsAppText(senderPhone, 'DressArt: Erreur lors de l\'assignation.')
+        return NextResponse.json({ok: true, ignored: 'update_failed'})
+    }
+
+    await sendWhatsAppText(
+        senderPhone,
+        `DressArt: ✅ Commande #${orderNumber} acceptée! Merci de démarrer les préparatifs.`,
+    )
+    return NextResponse.json({ok: true})
+}
+
+async function handleDeliveryStatusUpdate(
+    command: {type: 'delivery_status'; status: DeliveryStatus; token: string; signedByName?: string},
+    sender: string,
+    payload: any,
+): Promise<NextResponse> {
     const supabase = createSupabaseServiceClient()
     const {data, error} = await supabase
         .from('deliveries')
@@ -189,3 +256,32 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ok: true})
 }
+
+export async function POST(request: NextRequest) {
+    if (!isAuthorizedWebhook(request)) {
+        return NextResponse.json({ok: false, error: 'unauthorized_webhook'}, {status: 401})
+    }
+
+    const payload = await request.json().catch(() => ({}))
+
+    if (isFromMe(payload)) {
+        return NextResponse.json({ok: true, ignored: 'from_me'})
+    }
+
+    const text = extractText(payload)
+    const sender = extractSender(payload)
+    const command = parseCommand(text)
+
+    if (!sender || !command) {
+        return NextResponse.json({ok: true, ignored: 'unrecognized_payload'})
+    }
+
+    // Handle claim order command
+    if (command.type === 'claim_order') {
+        return handleClaimOrder(command.orderNumber, sender)
+    }
+
+    // Handle delivery status command
+    return handleDeliveryStatusUpdate(command, sender, payload)
+}
+

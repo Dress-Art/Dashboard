@@ -118,3 +118,105 @@ export async function remindCouturierAction(input: {
 
     return {success: true as const, skipped: result.skipped ?? null}
 }
+
+export async function claimOrderByCouturierAction(input: {orderNumber: string; couturierPhone: string}) {
+    const sessionClient = await createSupabaseServerClient()
+    const {data: {user}} = await sessionClient.auth.getUser()
+    if (!user) return {success: false, error: 'unauthorized'}
+
+    const role = getUserRole(user)
+    if (!isProfessionalRole(role) || role !== 'couturier') return {success: false, error: 'forbidden'}
+
+    const supabase = createSupabaseServiceClient()
+
+    // Retrieve order by orderNumber
+    const {data: orderData, error: orderError} = await supabase
+        .from('orders')
+        .select('id, model_id, professional_id, modelName')
+        .eq('orderNumber', input.orderNumber)
+        .maybeSingle()
+
+    if (orderError || !orderData) {
+        return {success: false, error: 'order_not_found'}
+    }
+
+    // Retrieve couturier user from auth.users by phone
+    const {data: authData, error: authError} = await supabase.auth.admin.listUsers()
+    if (authError || !authData.users) {
+        return {success: false, error: 'auth_list_failed'}
+    }
+
+    const couturierUser = authData.users.find(
+        u => u.phone && u.phone.trim() === input.couturierPhone.trim()
+    )
+    if (!couturierUser) {
+        return {success: false, error: 'couturier_not_found'}
+    }
+
+    // Verify that the couturier's model matches the order's model_id
+    if (orderData.model_id) {
+        const {data: modelData, error: modelError} = await supabase
+            .from('modeles')
+            .select('professional_id')
+            .eq('id', orderData.model_id)
+            .maybeSingle()
+
+        if (!modelError && modelData?.professional_id !== couturierUser.id) {
+            return {success: false, error: 'couturier_not_owner_of_model'}
+        }
+    }
+
+    // Assign order to couturier only if not already assigned
+    if (orderData.professional_id && orderData.professional_id !== couturierUser.id) {
+        return {success: false, error: 'order_already_assigned'}
+    }
+
+    const {data: updated, error: updateError} = await supabase
+        .from('orders')
+        .update({professional_id: couturierUser.id})
+        .eq('id', orderData.id)
+        .select('*')
+        .single()
+
+    if (updateError || !updated) {
+        return {success: false, error: 'update_failed'}
+    }
+
+    // Send confirmation message to couturier
+    const couturierName = couturierUser.user_metadata?.name as string | undefined
+    const confirmationMsg = `DressArt: ✅ Vous avez accepté la commande #${input.orderNumber}. ${couturierName || 'Couturier'},merci de démarrer les préparatifs!`
+
+    // Fire-and-forget notification (don't await)
+    void (async () => {
+        try {
+            const {normalizePhoneForEvolution} = await import('@/lib/evolution-api')
+            const normalizedPhone = normalizePhoneForEvolution(input.couturierPhone)
+            const {sendWhatsAppText} = await import('@/lib/evolution-api')
+            await sendWhatsAppText(normalizedPhone, confirmationMsg)
+        } catch (err) {
+            console.error('Failed to send claim confirmation:', err)
+        }
+    })()
+
+    return {success: true as const, order: updated}
+}
+
+export async function revokeCouturierSuggestionAction(input: {orderId: string}) {
+    const sessionClient = await createSupabaseServerClient()
+    const {data: {user}} = await sessionClient.auth.getUser()
+    if (!user) return {success: false, error: 'unauthorized'}
+
+    const role = getUserRole(user)
+    if (!isProfessionalRole(role) || role !== 'admin') return {success: false, error: 'forbidden'}
+
+    const supabase = createSupabaseServiceClient()
+    const {data, error} = await supabase
+        .from('orders')
+        .update({professional_id: null})
+        .eq('id', input.orderId)
+        .select('*')
+        .single()
+
+    if (error) return {success: false, error: error.message}
+    return {success: true as const, order: data}
+}

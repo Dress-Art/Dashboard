@@ -6,7 +6,7 @@ import { useAuthContext } from '@/contexts/AuthContext'
 import { notify } from '@/lib/toast'
 import { listTissus } from '@/lib/tissus-api'
 import { createDeliveryFromOrderAction } from '@/app/actions/deliveries'
-import { remindCouturierAction, resolveOrderProfessionalsAction, acceptCouturierSuggestionAction } from '@/app/actions/orders'
+import { remindCouturierAction, resolveOrderProfessionalsAction, acceptCouturierSuggestionAction, revokeCouturierSuggestionAction } from '@/app/actions/orders'
 import {
     type OrderStatus,
     type OrderPaymentStatus,
@@ -762,6 +762,29 @@ export function OrdersPage() {
                                                 className="px-3 py-1.5 bg-black dark:bg-white text-white dark:text-black rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-200"
                                             >
                                                 Accepter la suggestion
+                                            </button>
+                                            <button
+                                                onClick={async () => {
+                                                    setLaunchingDeliveryId(null)
+                                                    setRemindingCouturierId(null)
+                                                    try {
+                                                        setLaunchingDeliveryId(selectedOrder.orderNumber)
+                                                        const res = await revokeCouturierSuggestionAction({orderId: selectedOrder.id})
+                                                        if (!res.success) {
+                                                            notify.error(res.error ?? 'Impossible de retirer la suggestion')
+                                                            return
+                                                        }
+                                                        notify.success('Suggestion retirée', 'Le couturier a été désassigné')
+                                                        await load()
+                                                    } catch (err) {
+                                                        notify.error(err)
+                                                    } finally {
+                                                        setLaunchingDeliveryId(null)
+                                                    }
+                                                }}
+                                                className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600"
+                                            >
+                                                Retirer
                                             </button>
                                         </div>
                                     </div>
