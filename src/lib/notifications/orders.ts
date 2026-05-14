@@ -1,6 +1,7 @@
 import 'server-only'
 
-import {sendWhatsAppText} from '@/lib/evolution-api'
+import {notify} from './index'
+import {ORDER_STATUS_LABELS_FR, type OrderStatus} from '@/types/order.types'
 
 interface OrderReminderInput {
     couturierPhone: string
@@ -11,20 +12,11 @@ interface OrderReminderInput {
 }
 
 export async function notifyCouturierReminder(input: OrderReminderInput) {
-    const message = [
-        `DressArt: rappel pour la commande ${input.orderNumber}.`,
-        input.couturierName ? `Bonjour ${input.couturierName},` : null,
-        `Modèle: ${input.modelName}`,
-        `Statut actuel: ${input.statusLabel}`,
-        'Merci de faire le point sur l’avancement.',
-    ]
-        .filter(Boolean)
-        .join('\n')
-
-    const result = await sendWhatsAppText(input.couturierPhone, message)
-    if (!result.success && !result.skipped) {
-        console.error('[notifyCouturierReminder] WhatsApp failed:', result.error)
-    }
-
-    return result
+    return notify.couturierReminder(
+        input.couturierPhone,
+        input.couturierName,
+        input.orderNumber,
+        input.modelName,
+        input.statusLabel,
+    )
 }
