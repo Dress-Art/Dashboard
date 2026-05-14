@@ -23,7 +23,7 @@ DressArt est une plateforme couture B2B2C qui orchestre 5 rôles distincts dans 
 | **Livreur** (pro / sous-traitant) | Acheminement physique | Adresse, contact destinataire (via Tassi) |
 | **Admin** | Supervision plateforme | Accès complet |
 
-**Architecture technique** : application Next.js + base PostgreSQL Supabase + Row-Level Security par rôle + intégrations FedaPay (paiement), Resend (email), MsgFlash (SMS/WhatsApp), Tassi.pro (livraison).
+**Architecture technique** : application Next.js + base PostgreSQL Supabase + Row-Level Security par rôle + intégrations FedaPay (paiement), Resend (email), Evolution API (notifications WhatsApp), Tassi.pro (livraison).
 
 ---
 
@@ -84,7 +84,7 @@ Pour chaque traitement, identifier la base légale (RGPD art. 6 / Loi 2017-20 ar
 | 5 | **Snapshots persistants** : `orders.customer_name/phone/email` survivent à la suppression du client | 🟡 | RLS DELETE sur `clients` ne propage pas |
 | 6 | **Pas d'UI pour droits des personnes** (accès, portabilité, effacement, opposition) | 🔴 | absent |
 | 7 | **Webhook Tassi sans signature confirmée** par doc officielle | 🟡 | `src/app/api/webhooks/tassi/route.ts` (algo HMAC supposé) |
-| 8 | **Transferts internationaux non documentés** : Supabase US par défaut, Resend US, Tassi/MsgFlash inconnus | 🟠 | `.env.local` |
+| 8 | **Transferts internationaux non documentés** : Supabase US par défaut, Resend US, Tassi/Evolution inconnus | 🟠 | `.env.local` |
 | 9 | **Politique de mot de passe** : 8 caractères minimum côté UI, à durcir | 🟡 | `src/app/reset-password/page.tsx` |
 | 10 | **Partage de `auth.users`** entre marketplace et dashboard sans cloisonnement strict | 🟡 | architecture |
 
@@ -133,7 +133,7 @@ Liste exhaustive (à publier dans la politique de confidentialité, art. 28 RGPD
 | **FedaPay** | Paiement | Données paiement, montants, transaction_id | Bénin (UEMOA) | Contrat marchand existant — vérifier clauses RGPD |
 | **Tassi.pro** | Livraison logistique | Adresse + nom + phone destinataires | À confirmer (Cloudflare frontal) | Pas encore de DPA — à demander |
 | **Resend** | Email transactionnel | Email + nom + contenu | US | DPA standard disponible publiquement |
-| **MsgFlash** | SMS / WhatsApp | Phone + contenu | À confirmer | À demander |
+| **Evolution API** | Notifications WhatsApp | Phone + contenu | À confirmer | À demander |
 | **Cloudflare** (probable) | CDN / DNS | IPs visiteurs | Global | DPA standard |
 | **Vercel** (si déploiement Next) | Hébergement | Logs requêtes | US | DPA disponible |
 
@@ -157,7 +157,7 @@ Liste exhaustive (à publier dans la politique de confidentialité, art. 28 RGPD
 | **PIA / AIPD** (Analyse d'Impact) | Interne, recommandée vu mesures corporelles | ❌ absent | 🔴 |
 | **Procédure data breach** | Interne | ❌ absent | 🔴 |
 | **DPA Supabase** | Interne | ✅ disponible | À signer |
-| **DPA FedaPay / Resend / MsgFlash / Tassi** | Interne | ❌ à demander | 🔴 |
+| **DPA FedaPay / Resend / Evolution / Tassi** | Interne | ❌ à demander | 🔴 |
 | **Contrat de travail / mission DPO** (interne ou externalisé) | Légal Bénin | ❌ à clarifier | 🟠 |
 
 ---
@@ -309,11 +309,14 @@ FEDAPAY_ENVIRONMENT
 FEDAPAY_WEBHOOK_SECRET
 FEDAPAY_CALLBACK_URL
 
-# MsgFlash (SMS/WhatsApp)
-MSGFLASH_API_KEY
-MSGFLASH_INSTANCE_ID
-SUPABASE_SMS_HOOK_SECRET
+# Evolution API (notifications WhatsApp)
+EVOLUTION_API_URL
+EVOLUTION_API_KEY
+EVOLUTION_INSTANCE
 ADMIN_WHATSAPP_PHONE
+
+# Supabase Auth SMS (OTP séparé des notifications)
+SUPABASE_SMS_HOOK_SECRET
 
 # Resend (email)
 RESEND_API_KEY
