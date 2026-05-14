@@ -45,35 +45,6 @@ export interface SendResult {
     skipped?: string
 }
 
-export async function sendWhatsAppText(to: string, text: string): Promise<SendResult> {
-    const config = getConfig()
-    if (!config) return {success: false, skipped: 'evolution_not_configured'}
-    if (!to || !text) return {success: false, skipped: 'missing_to_or_text'}
-
-    const url = `${config.baseUrl}/message/sendText/${config.instance}`
-    const number = normalizePhoneForEvolution(to)
-
-    try {
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                apikey: config.apiKey,
-            },
-            body: JSON.stringify({number, textMessage: text}),
-        })
-
-        if (!res.ok) {
-            const body = await res.text().catch(() => '')
-            return {success: false, error: `evolution_${res.status}: ${body.slice(0, 200)}`}
-        }
-
-        return {success: true}
-    } catch (error) {
-        return {success: false, error: error instanceof Error ? error.message : 'unknown_error'}
-    }
-}
-
 export async function sendWhatsAppMedia(
     to: string,
     media: string,
@@ -109,5 +80,38 @@ export async function sendWhatsAppMedia(
         return {success: true}
     } catch (error) {
         return {success: false, error: error instanceof Error ? error.message : 'unknown_error'}
+    }
+}
+
+export async function sendWhatsAppText(to: string, text: string): Promise<SendResult> {
+    const config = getConfig()
+    if (!config) return { success: false, skipped: 'evolution_not_configured' }
+    if (!to || !text) return { success: false, skipped: 'missing_to_or_text' }
+
+    const number = normalizePhoneForEvolution(to)
+    const url = `${config.baseUrl}/message/sendText/${config.instance}`
+
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                apikey: config.apiKey,
+            },
+            body: JSON.stringify({
+                number,
+                options: { delay: 500, presence: 'composing' },
+                textMessage: { text },  // ← objet, pas string
+            }),
+        })
+
+        if (!res.ok) {
+            const body = await res.text().catch(() => '')
+            return { success: false, error: `evolution_${res.status}: ${body.slice(0, 200)}` }
+        }
+
+        return { success: true }
+    } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : 'unknown_error' }
     }
 }

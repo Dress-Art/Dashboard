@@ -21,8 +21,30 @@ export default function ResetPasswordPage() {
     const [submitting, setSubmitting] = useState(false)
     const [password, setPassword] = useState('')
     const [confirm, setConfirm] = useState('')
+    const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
+        // Check for error in URL (otp_expired, invalid token, etc)
+        const urlParams = new URLSearchParams(window.location.search)
+        const errorDesc = urlParams.get('error_description')
+        if (errorDesc) {
+            setError(decodeURIComponent(errorDesc))
+            return
+        }
+
+        // PKCE flow — échange le code query param pour une session
+        const code = urlParams.get('code')
+        if (code) {
+            supabase.auth.exchangeCodeForSession(code).then(({ error: exchangeError, data }) => {
+                if (exchangeError) {
+                    setError(`Erreur lors de l'échange du code: ${exchangeError.message}`)
+                } else if (data.session) {
+                    setReady(true)
+                }
+            })
+        }
+
+        // Listen for auth state changes
         const {data} = supabase.auth.onAuthStateChange(event => {
             if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
                 setReady(true)
@@ -69,7 +91,30 @@ export default function ResetPasswordPage() {
             title="Nouveau mot de passe"
             subtitle="Choisissez un mot de passe d'au moins 8 caractères."
         >
-            {!ready ? (
+            {error ? (
+                <div className="space-y-4">
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 text-red-800 dark:text-red-200 p-4 rounded-xl text-sm">
+                        <strong>Erreur:</strong> {error}
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Le lien de réinitialisation est invalide ou a expiré. Demandez un nouveau lien.
+                    </p>
+                    <div className="flex gap-3">
+                        <Link
+                            href="/forgot-password"
+                            className="flex-1 text-center py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl hover:bg-gray-800 dark:hover:bg-gray-200 font-semibold transition-colors"
+                        >
+                            Demander un nouveau lien
+                        </Link>
+                        <Link
+                            href="/login"
+                            className="flex-1 text-center py-2.5 border border-gray-300 dark:border-gray-700 text-black dark:text-white rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 font-semibold transition-colors"
+                        >
+                            Connexion
+                        </Link>
+                    </div>
+                </div>
+            ) : !ready ? (
                 <div className="space-y-4">
                     <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 text-yellow-800 dark:text-yellow-200 p-4 rounded-xl text-sm">
                         En attente de la vérification du lien de réinitialisation. Si rien ne se passe, le lien est

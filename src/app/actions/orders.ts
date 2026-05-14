@@ -270,11 +270,16 @@ export async function manualAssignCouturierAction(input: {orderId: string; order
             return {success: false, error: 'user_is_not_couturier'}
         }
 
-        // Update the local dashboard orders table with the professional_id assignment
-        const {data: updated, error: updateError} = await supabase
+        
+        const { data: updated, error: updateError } = await supabase
             .from('orders')
-            .update({professional_id: input.couturierId})
-            .eq('order_number', input.orderNumber)
+            .upsert(
+            {
+                order_number: input.orderNumber,
+                professional_id: input.couturierId,
+            },
+            { onConflict: 'order_number' }
+            )
             .select('*')
             .single()
 
@@ -282,6 +287,7 @@ export async function manualAssignCouturierAction(input: {orderId: string; order
             console.error('manualAssign: local update failed', {orderId: input.orderId, updateError})
             return {success: false, error: updateError.message}
         }
+
 
         const couturierPhone = couturierData.user.phone
         if (couturierPhone) {
