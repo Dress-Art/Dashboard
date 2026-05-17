@@ -76,8 +76,11 @@ export function useAuth() {
      */
     const resetPassword = async (email: string) => {
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '')
+        // L'email Supabase pointe vers /auth/callback (server route) qui fait
+        // l'exchange PKCE puis redirige vers /reset-password. Sans ce détour,
+        // le code_verifier (cookie HttpOnly) ne serait pas lisible côté client.
         const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${siteUrl}/reset-password`,
+            redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
         })
         return { data, error }
     }

@@ -9,9 +9,10 @@ import {supabase} from '@/lib/supabase'
 import {notify} from '@/lib/toast'
 
 /**
- * Page d'arrivée du lien Supabase « reset password ».
- * Attend l'event `PASSWORD_RECOVERY` (Supabase échange le token automatiquement)
- * avant d'afficher le formulaire — pas de bypass possible sans token valide.
+ * Page d'arrivée du flow reset-password. L'exchange PKCE est fait côté serveur
+ * par /auth/callback (qui pose le cookie de session puis redirige ici). On se
+ * contente donc de vérifier que la session existe, ou de remonter l'erreur
+ * propagée en query string.
  */
 export default function ResetPasswordPage() {
     const router = useRouter()
@@ -24,35 +25,22 @@ export default function ResetPasswordPage() {
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        // Check for error in URL (otp_expired, invalid token, etc)
         const urlParams = new URLSearchParams(window.location.search)
-        const errorDesc = urlParams.get('error_description')
-        if (errorDesc) {
-            setError(decodeURIComponent(errorDesc))
+        const errParam = urlParams.get('error') ?? urlParams.get('error_description')
+        if (errParam) {
+            setError(decodeURIComponent(errParam))
             return
         }
 
-        // PKCE flow — échange le code query param pour une session
-        const code = urlParams.get('code')
-        if (code) {
-            supabase.auth.exchangeCodeForSession(code).then(({ error: exchangeError, data }) => {
-                if (exchangeError) {
-                    setError(`Erreur lors de l'échange du code: ${exchangeError.message}`)
-                } else if (data.session) {
-                    setReady(true)
-                }
-            })
-        }
-
-        // Listen for auth state changes
-        const {data} = supabase.auth.onAuthStateChange(event => {
-            if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
-                setReady(true)
-            }
+        // /auth/callback a déjà fait l'exchange : la session est posée en cookie.
+        // On vérifie qu'on a bien une session active sinon le lien est expiré.
+        supabase.auth.getSession().then(({data: {session}}) => {
+            if (session) setReady(true)
+            else setError('Lien de réinitialisation invalide ou expiré.')
         })
 
-        supabase.auth.getSession().then(({data: {session}}) => {
-            if (session && typeof window !== 'undefined' && window.location.hash.includes('type=recovery')) {
+        const {data} = supabase.auth.onAuthStateChange(event => {
+            if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
                 setReady(true)
             }
         })
