@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { PlusIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
-import { coutureAPI } from '@/lib/couture-api'
+import { listModels, createModel } from '@/lib/couturier-api'
 import { ModelsTable } from './ModelsTable'
 
 interface ModelEntity {
@@ -49,11 +49,17 @@ export function ModelsPage() {
             setLoading(true)
             setError(null)
 
-            const result = await coutureAPI.listModels({ search: q.trim() })
-            
+            const result = await listModels({ search: q.trim() })
+
             setData({
-                items: result.models || [],
-                total: result.total || 0
+                items: result.models.map(m => ({
+                    id: m.id,
+                    name: m.name,
+                    description: m.description ?? '',
+                    price: m.price,
+                    created_at: m.created_at,
+                })),
+                total: result.total
             })
 
         } catch (err) {
@@ -85,7 +91,7 @@ export function ModelsPage() {
             setActionLoading('create')
             setError(null)
             
-            await coutureAPI.createModel(newModel)
+            await createModel(newModel)
 
             setNewModel({ name: '', description: '', price: 0 })
             setShowCreateModal(false)

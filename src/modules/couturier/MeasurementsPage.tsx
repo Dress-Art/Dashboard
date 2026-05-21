@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { PlusIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
 import { coutureAPI } from '@/lib/couture-api'
+import { listMeasurements, createMeasurement } from '@/lib/couturier-api'
 import { MeasurementsTable } from './MeasurementsTable'
 
 interface MeasurementEntity {
@@ -58,13 +59,13 @@ export function MeasurementsPage() {
             setError(null)
 
             const [measurementsResult, clientsResult] = await Promise.all([
-                coutureAPI.listMeasurements({ search: q.trim() }),
+                listMeasurements({ search: q.trim() }),
                 coutureAPI.listClients()
             ])
-            
+
             setData({
-                items: measurementsResult.measurements || [],
-                total: measurementsResult.total || 0
+                items: measurementsResult.measurements as unknown as MeasurementEntity[],
+                total: measurementsResult.total
             })
             setClients(clientsResult.clients || [])
 
@@ -97,7 +98,7 @@ export function MeasurementsPage() {
             setActionLoading('create')
             setError(null)
             
-            await coutureAPI.createMeasurement(newMeasurement)
+            await createMeasurement(newMeasurement)
 
             setNewMeasurement({ client_id: '', name: '', value: 0, unit: 'cm' })
             setShowCreateModal(false)

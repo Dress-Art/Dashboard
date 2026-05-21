@@ -4,6 +4,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react'
 import {useAuthContext} from '@/contexts/AuthContext'
 import {adminAPI} from '@/lib/admin-api'
 import {coutureAPI} from '@/lib/couture-api'
+import {listModels, listMeasurements} from '@/lib/couturier-api'
 import {notify} from '@/lib/toast'
 import {ClientsPage} from './ClientsPage'
 import {ModelsPage} from './ModelsPage'
@@ -40,8 +41,8 @@ function AdminCouturierDashboard() {
                 adminAPI.getUsers({limit: 1000}),
                 adminAPI.getOrders(),
                 coutureAPI.listClients(),
-                coutureAPI.listModels(),
-                coutureAPI.listMeasurements(),
+                listModels(),
+                listMeasurements(),
             ])
 
             const users = usersRes.users ?? []
