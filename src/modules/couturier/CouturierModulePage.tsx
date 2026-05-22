@@ -5,7 +5,6 @@ import {useAuthContext} from '@/contexts/AuthContext'
 import {adminAPI} from '@/lib/admin-api'
 import {coutureAPI} from '@/lib/couture-api'
 import {listModels, listMeasurements} from '@/lib/couturier-api'
-import {notify} from '@/lib/toast'
 import {ClientsPage} from './ClientsPage'
 import {ModelsPage} from './ModelsPage'
 import {MeasurementsPage} from './MeasurementsPage'
@@ -34,52 +33,59 @@ function AdminCouturierDashboard() {
     const [couturiers, setCouturiers] = useState<CouturierRow[]>([])
 
     const load = useCallback(async () => {
-        try {
-            setLoading(true)
+        setLoading(true)
 
-            const [usersRes, ordersRes, clientsRes, modelsRes, measurementsRes] = await Promise.all([
-                adminAPI.getUsers({limit: 1000}),
-                adminAPI.getOrders(),
-                coutureAPI.listClients(),
-                listModels(),
-                listMeasurements(),
-            ])
+        // allSettled : un appel cassé (ex: table `mesures` introuvable) ne
+        // doit pas vider tous les compteurs. On dégrade gracieusement par
+        // source au lieu de tout perdre.
+        const [usersRes, ordersRes, clientsRes, modelsRes, measurementsRes] = await Promise.allSettled([
+            adminAPI.getUsers({limit: 1000}),
+            adminAPI.getOrders(),
+            coutureAPI.listClients(),
+            listModels(),
+            listMeasurements(),
+        ])
 
-            const users = usersRes.users ?? []
-            const orders = ordersRes.orders ?? []
-            const clients = clientsRes.clients ?? []
-            const models = modelsRes.models ?? []
-            const measurements = measurementsRes.measurements ?? []
-
-            const couturierUsers: CouturierRow[] = users
-                .filter((user: {role?: string; id?: string; email?: string; phone?: string; name?: string; status?: string}) =>
-                    (user.role ?? '').toLowerCase() === 'couturier' && user.id,
-                )
-                .map((user: {id: string; email?: string; phone?: string; name?: string; status?: string}) => ({
-                    id: user.id,
-                    name: user.name || user.email || 'Couturier',
-                    email: user.email || user.phone || '',
-                    phone: user.phone,
-                    status: user.status,
-                    ordersCount: orders.filter((order: {professional_id?: string}) => order.professional_id === user.id).length,
-                }))
-                .sort((a: CouturierRow, b: CouturierRow) => b.ordersCount - a.ordersCount || a.name.localeCompare(b.name))
-
-            setStats({
-                couturiers: couturierUsers.length,
-                orders: ordersRes.total ?? orders.length,
-                clients: clientsRes.total ?? clients.length,
-                models: modelsRes.total ?? models.length,
-                measurements: measurementsRes.total ?? measurements.length,
-            })
-            setCouturiers(couturierUsers)
-        } catch (err) {
-            console.error('Erreur dashboard couturier admin:', err)
-            notify.error(err)
-            setCouturiers([])
-        } finally {
-            setLoading(false)
+        const logIfRejected = (label: string, res: PromiseSettledResult<unknown>) => {
+            if (res.status === 'rejected') {
+                console.warn(`[couturier admin] ${label} a échoué:`, res.reason)
+            }
         }
+        logIfRejected('users', usersRes)
+        logIfRejected('orders', ordersRes)
+        logIfRejected('clients', clientsRes)
+        logIfRejected('models', modelsRes)
+        logIfRejected('measurements', measurementsRes)
+
+        const users = usersRes.status === 'fulfilled' ? (usersRes.value.users ?? []) : []
+        const orders = ordersRes.status === 'fulfilled' ? (ordersRes.value.orders ?? []) : []
+        const clients = clientsRes.status === 'fulfilled' ? (clientsRes.value.clients ?? []) : []
+        const models = modelsRes.status === 'fulfilled' ? modelsRes.value.models : []
+        const measurements = measurementsRes.status === 'fulfilled' ? measurementsRes.value.measurements : []
+
+        const couturierUsers: CouturierRow[] = users
+            .filter((user: {role?: string; id?: string; email?: string; phone?: string; name?: string; status?: string}) =>
+                (user.role ?? '').toLowerCase() === 'couturier' && user.id,
+            )
+            .map((user: {id: string; email?: string; phone?: string; name?: string; status?: string}) => ({
+                id: user.id,
+                name: user.name || user.email || 'Couturier',
+                email: user.email || user.phone || '',
+                phone: user.phone,
+                status: user.status,
+                ordersCount: orders.filter((order: {professional_id?: string}) => order.professional_id === user.id).length,
+            }))
+            .sort((a: CouturierRow, b: CouturierRow) => b.ordersCount - a.ordersCount || a.name.localeCompare(b.name))
+
+        setStats({
+            couturiers: couturierUsers.length,
+            orders: ordersRes.status === 'fulfilled' ? (ordersRes.value.total ?? orders.length) : 0,
+            clients: clientsRes.status === 'fulfilled' ? (clientsRes.value.total ?? clients.length) : 0,
+            models: modelsRes.status === 'fulfilled' ? modelsRes.value.total : 0,
+            measurements: measurementsRes.status === 'fulfilled' ? measurementsRes.value.total : 0,
+        })
+        setCouturiers(couturierUsers)
+        setLoading(false)
     }, [])
 
     useEffect(() => {
