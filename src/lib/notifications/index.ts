@@ -1,86 +1,134 @@
 import 'server-only'
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+import {sendWhatsAppText, type SendResult} from '@/lib/evolution-api'
 
-if (!SUPABASE_URL) {
-    throw new Error('NEXT_PUBLIC_SUPABASE_URL is required for notification helpers')
-}
+/**
+ * Templates WhatsApp transactionnels DressArt.
+ *
+ * Ancien design : passait par les Edge Functions Supabase `notify-couturier`
+ * et `notify-client` — mais elles n'étaient pas déployées en prod, ce qui
+ * cassait les server actions (ex. `remindCouturierAction`) en 500 puisque
+ * `invokeFunction` levait une exception au lieu de renvoyer un résultat.
+ *
+ * Nouveau design : envoi direct via Evolution API (comme pour les livraisons),
+ * fire-and-forget côté appelant. Chaque méthode renvoie `SendResult` (jamais
+ * throw) pour que les server actions puissent continuer même si l'envoi
+ * échoue (config absente, instance WhatsApp déconnectée, etc.).
+ */
 
-if (!SERVICE_ROLE_KEY) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for notification helpers')
-}
-
-async function invokeFunction(fnName: string, body: object) {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/${fnName}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-        },
-        body: JSON.stringify(body),
-    })
-
-    if (!res.ok) {
-        const errorText = await res.text().catch(() => '')
-        throw new Error(`[notifications] ${fnName} failed: ${errorText || res.status}`)
-    }
-
-    return res.json()
+function fmtRef(orderId: string): string {
+    return orderId.slice(0, 8).toUpperCase()
 }
 
 export const notify = {
-    couturierReminder: (couturierPhone: string, couturierName: string | null | undefined, orderNumber: string, modelName: string, statusLabel: string) =>
-        invokeFunction('notify-couturier', {
-            event: 'order.reminder',
-            payload: {couturierPhone, couturierName, orderNumber, modelName, statusLabel},
-        }),
+    /**
+     * Rappel WhatsApp envoyé au couturier qui traîne sur une commande.
+     * Déclenché par l'admin depuis la modale détail commande.
+     */
+    couturierReminder: (
+        couturierPhone: string,
+        couturierName: string | null | undefined,
+        orderNumber: string,
+        modelName: string,
+        statusLabel: string,
+    ): Promise<SendResult> => {
+        const greeting = couturierName ? `Bonjour ${couturierName},` : 'Bonjour,'
+        const text = [
+            `DressArt: rappel commande #${orderNumber}.`,
+            `${greeting}`,
+            `Modèle : ${modelName}`,
+            `Statut actuel : ${statusLabel}`,
+            'Merci de faire avancer cette commande dès que possible.',
+        ].join('\n')
+        return sendWhatsAppText(couturierPhone, text)
+    },
 
-    orderConfirmed: (clientPhone: string, orderId: string, couturierName: string) =>
-        invokeFunction('notify-client', {
-            event: 'order.confirmed',
-            payload: {clientPhone, orderId, couturierName},
-        }),
+    /** Confirmation envoyée au client juste après création de la commande. */
+    orderConfirmed: (clientPhone: string, orderId: string, couturierName: string): Promise<SendResult> => {
+        const text = [
+            `DressArt: commande #${fmtRef(orderId)} confirmée.`,
+            `Couturier attribué : ${couturierName}.`,
+            'Nous vous tiendrons informé(e) à chaque étape.',
+        ].join('\n')
+        return sendWhatsAppText(clientPhone, text)
+    },
 
-    agentBooked: (clientPhone: string, orderId: string, appointmentDate: string, appointmentTime: string) =>
-        invokeFunction('notify-client', {
-            event: 'agent.appointment.booked',
-            payload: {clientPhone, orderId, appointmentDate, appointmentTime},
-        }),
+    /** Notification client après prise de RDV avec un agent (prise de mesures). */
+    agentBooked: (
+        clientPhone: string,
+        orderId: string,
+        appointmentDate: string,
+        appointmentTime: string,
+    ): Promise<SendResult> => {
+        const text = [
+            `DressArt: rendez-vous mesures confirmé pour la commande #${fmtRef(orderId)}.`,
+            `Date : ${appointmentDate}`,
+            `Heure : ${appointmentTime}`,
+            'Un agent vous contactera juste avant le RDV.',
+        ].join('\n')
+        return sendWhatsAppText(clientPhone, text)
+    },
 
-    orderInProgress: (clientPhone: string, orderId: string, couturierName: string, estimatedDays: number) =>
-        invokeFunction('notify-client', {
-            event: 'order.in_progress',
-            payload: {clientPhone, orderId, couturierName, estimatedDays},
-        }),
+    /** Notification client quand la couture démarre. */
+    orderInProgress: (
+        clientPhone: string,
+        orderId: string,
+        couturierName: string,
+        estimatedDays: number,
+    ): Promise<SendResult> => {
+        const text = [
+            `DressArt: votre commande #${fmtRef(orderId)} est en couture.`,
+            `Couturier : ${couturierName}`,
+            `Délai estimé : ${estimatedDays} jour(s).`,
+        ].join('\n')
+        return sendWhatsAppText(clientPhone, text)
+    },
 
-    orderReady: (clientPhone: string, orderId: string, couturierName: string) =>
-        invokeFunction('notify-client', {
-            event: 'order.ready',
-            payload: {clientPhone, orderId, couturierName},
-        }),
+    /** Notification client quand la commande est prête à livrer. */
+    orderReady: (clientPhone: string, orderId: string, couturierName: string): Promise<SendResult> => {
+        const text = [
+            `DressArt: commande #${fmtRef(orderId)} prête.`,
+            `Couturier : ${couturierName}.`,
+            'Vous recevrez bientôt un lien de suivi de livraison.',
+        ].join('\n')
+        return sendWhatsAppText(clientPhone, text)
+    },
 
+    /** Notification couturier d'une nouvelle commande qui lui est assignée. */
     newOrderToCouturier: (
         couturierPhone: string,
         orderId: string,
         clientName: string,
         modelName: string,
         measurementMethod: 'self' | 'agent',
-    ) =>
-        invokeFunction('notify-couturier', {
-            event: 'order.new',
-            payload: {couturierPhone, orderId, clientName, modelName, measurementMethod},
-        }),
+    ): Promise<SendResult> => {
+        const methodLabel = measurementMethod === 'agent' ? 'mesures via agent' : 'mesures auto-saisies par le client'
+        const text = [
+            `DressArt: nouvelle commande #${fmtRef(orderId)}.`,
+            `Client : ${clientName}`,
+            `Modèle : ${modelName}`,
+            `Méthode : ${methodLabel}.`,
+        ].join('\n')
+        return sendWhatsAppText(couturierPhone, text)
+    },
 
-    measuresReceived: (couturierPhone: string, orderId: string, clientName: string) =>
-        invokeFunction('notify-couturier', {
-            event: 'measures.received',
-            payload: {couturierPhone, orderId, clientName},
-        }),
+    /** Notification couturier quand le client a saisi ses mesures. */
+    measuresReceived: (couturierPhone: string, orderId: string, clientName: string): Promise<SendResult> => {
+        const text = [
+            `DressArt: mesures reçues pour la commande #${fmtRef(orderId)}.`,
+            `Client : ${clientName}`,
+            'Vous pouvez démarrer la couture.',
+        ].join('\n')
+        return sendWhatsAppText(couturierPhone, text)
+    },
 
-    agentMeasuresTransmitted: (couturierPhone: string, orderId: string, clientName: string) =>
-        invokeFunction('notify-couturier', {
-            event: 'agent.measures.transmitted',
-            payload: {couturierPhone, orderId, clientName},
-        }),
+    /** Notification couturier quand l'agent a transmis les mesures. */
+    agentMeasuresTransmitted: (couturierPhone: string, orderId: string, clientName: string): Promise<SendResult> => {
+        const text = [
+            `DressArt: mesures transmises par l'agent pour la commande #${fmtRef(orderId)}.`,
+            `Client : ${clientName}`,
+            'Vous pouvez démarrer la couture.',
+        ].join('\n')
+        return sendWhatsAppText(couturierPhone, text)
+    },
 }
