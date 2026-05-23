@@ -9,7 +9,7 @@ import {supabase} from './supabase'
  * Conventions :
  *   - table `modeles` : colonnes `id, professional_id, name, description, price, created_at`
  *     (cf. supabase/migrations/20260513_add_orders_professional_id.sql).
- *   - table `mesures` : créée en prod, colonnes supposées
+ *   - table `measurements` : créée en prod, colonnes supposées
  *     `id, client_id, name, value, unit, created_at` (+ éventuellement
  *     `professional_id`). À ajuster si le schéma diffère.
  */
@@ -90,7 +90,7 @@ export async function listMeasurements(params: ListMeasurementsParams = {}): Pro
     total: number
 }> {
     let q = supabase
-        .from('mesures')
+        .from('measurements')
         .select('*', {count: 'exact'})
         .order('created_at', {ascending: false})
         .limit(params.limit ?? 200)
@@ -114,7 +114,7 @@ export async function createMeasurement(input: {
     if (!user) throw new Error('Non authentifié')
 
     const {data, error} = await supabase
-        .from('mesures')
+        .from('measurements')
         .insert({
             client_id: input.client_id,
             name: input.name,
