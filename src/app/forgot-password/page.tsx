@@ -54,12 +54,12 @@ export default function ForgotPasswordPage() {
                         Si un compte existe pour <strong>{email}</strong>, vous allez recevoir un email avec un
                         lien de réinitialisation. Pensez à vérifier vos spams.
                     </div>
-                    <Link
+                    {/* <Link
                         href="/login"
                         className="block w-full text-center py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl hover:bg-gray-800 dark:hover:bg-gray-200 font-semibold transition-colors"
                     >
                         Retour à la connexion
-                    </Link>
+                    </Link> */}
                 </div>
             ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
