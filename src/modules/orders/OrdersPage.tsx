@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { InboxIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { adminAPI } from '@/lib/admin-api'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { notify } from '@/lib/toast'
@@ -611,11 +612,40 @@ export function OrdersPage() {
             {/* Tableau */}
             <div className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
                 {loading ? (
-                    <div className="p-12 flex justify-center">
-                        <div className="w-8 h-8 border-4 border-gray-300 border-t-black dark:border-t-white rounded-full animate-spin" />
+                    <div className="divide-y divide-gray-100 dark:divide-gray-900">
+                        {[0, 1, 2, 3, 4].map(i => (
+                            <div key={i} className="px-4 py-4 flex items-center gap-4">
+                                <div className="h-9 w-24 rounded bg-gray-100 dark:bg-gray-900 animate-pulse" />
+                                <div className="h-9 flex-1 rounded bg-gray-100 dark:bg-gray-900 animate-pulse" />
+                                <div className="h-6 w-24 rounded-full bg-gray-100 dark:bg-gray-900 animate-pulse" />
+                                <div className="h-9 w-32 rounded bg-gray-100 dark:bg-gray-900 animate-pulse" />
+                            </div>
+                        ))}
                     </div>
                 ) : filtered.length === 0 ? (
-                    <div className="p-12 text-center text-gray-500">Aucune commande trouvée</div>
+                    <div className="p-12 text-center">
+                        {search.trim() ? (
+                            <>
+                                <MagnifyingGlassIcon className="mx-auto w-10 h-10 text-gray-400 dark:text-gray-600" />
+                                <p className="mt-3 text-sm font-medium text-black dark:text-white">
+                                    Aucune commande ne correspond à votre recherche.
+                                </p>
+                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Essayez un autre numéro, nom ou téléphone.
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <InboxIcon className="mx-auto w-10 h-10 text-gray-400 dark:text-gray-600" />
+                                <p className="mt-3 text-sm font-medium text-black dark:text-white">
+                                    {statusFilter === 'all' ? 'Aucune commande pour l\'instant.' : 'Aucune commande dans cet onglet.'}
+                                </p>
+                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    {statusFilter === 'all' ? 'Les nouvelles commandes apparaîtront ici.' : 'Essayez l\'onglet « Toutes » pour voir l\'ensemble.'}
+                                </p>
+                            </>
+                        )}
+                    </div>
                 ) : (
                     <table className="w-full text-sm">
                         <thead className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950">
@@ -709,8 +739,12 @@ export function OrdersPage() {
                                 <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-3">
                                     <p className="text-xs text-gray-400 mb-1">Paiement</p>
                                     <p className="font-semibold text-black dark:text-white">{selectedOrder.totalAmount.toLocaleString('fr-FR')} FCFA</p>
-                                    <p className="text-green-600 text-xs">Payé : {selectedOrder.paidAmount.toLocaleString('fr-FR')} FCFA</p>
-                                    {selectedOrder.totalAmount > selectedOrder.paidAmount && (
+                                    {selectedOrder.paidAmount > 0 ? (
+                                        <p className="text-green-600 dark:text-green-400 text-xs">Payé : {selectedOrder.paidAmount.toLocaleString('fr-FR')} FCFA</p>
+                                    ) : (
+                                        <p className="text-gray-500 text-xs">Non payé</p>
+                                    )}
+                                    {selectedOrder.totalAmount > selectedOrder.paidAmount && selectedOrder.paidAmount > 0 && (
                                         <p className="text-gray-500 text-xs">Reste : {(selectedOrder.totalAmount - selectedOrder.paidAmount).toLocaleString('fr-FR')} FCFA</p>
                                     )}
                                 </div>
@@ -767,15 +801,12 @@ export function OrdersPage() {
                                 )}
 
                                 {role === 'admin' && (
-                                    <details className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 p-4">
-                                        <summary className="cursor-pointer list-none flex items-center justify-between gap-3">
-                                            <div>
-                                                <p className="text-sm font-semibold text-black dark:text-white">Outils admin</p>
-                                                <p className="text-xs text-gray-600 dark:text-gray-400">Suggestion, rappel et assignation dans un seul panneau.</p>
-                                            </div>
-                                            <span className="text-xs text-gray-500 dark:text-gray-400">Afficher</span>
-                                        </summary>
-                                        <div className="mt-4 space-y-4">
+                                    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 p-4">
+                                        <div className="mb-4">
+                                            <p className="text-sm font-semibold text-black dark:text-white">Outils admin</p>
+                                            <p className="text-xs text-gray-600 dark:text-gray-400">Suggestion, rappel et assignation du couturier.</p>
+                                        </div>
+                                        <div className="space-y-4">
                                             {selectedOrder && selectedOrder.model_id && selectedOrder.professional_id && (
                                                 <div className="rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/70 dark:bg-blue-950/20 p-4 space-y-3">
                                                     <div className="flex items-center justify-between">
@@ -912,7 +943,7 @@ export function OrdersPage() {
                                                 </div>
                                             )}
                                         </div>
-                                    </details>
+                                    </div>
                                 )}
 
                                 <div className="flex gap-3">
