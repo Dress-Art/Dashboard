@@ -285,6 +285,7 @@ export function TissusPage() {
                         onEdit={openEdit}
                         onDelete={openDelete}
                         actionLoading={actionLoading}
+                        emptyContext={q.trim() ? 'search' : stockFilter !== 'all' ? 'tab' : 'all'}
                     />
                 </div>
             </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import {EyeIcon, PencilIcon, TrashIcon} from '@heroicons/react/24/outline'
+import {EyeIcon, PencilIcon, TrashIcon, SwatchIcon, MagnifyingGlassIcon} from '@heroicons/react/24/outline'
 import type {Tissu} from '@/types/tissu.types'
 
 interface TissusTableProps {
@@ -12,6 +12,8 @@ interface TissusTableProps {
     onEdit: (t: Tissu) => void
     onDelete: (t: Tissu) => void
     actionLoading: string | null
+    /** Contexte pour l'empty state — distingue "rien à afficher" / "filtre vide" / "recherche vide". */
+    emptyContext?: 'all' | 'tab' | 'search'
 }
 
 function formatFCFA(n: number): string {
@@ -27,15 +29,41 @@ export function TissusTable({
     onEdit,
     onDelete,
     actionLoading,
+    emptyContext = 'all',
 }: TissusTableProps) {
-    if (tissus.length === 0 && !loading) {
+    if (loading && tissus.length === 0) {
         return (
-            <div className="text-center py-12 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900/50">
-                <h3 className="text-lg font-semibold text-black dark:text-white mb-2">
-                    Aucun tissu trouvé
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                    Le catalogue est vide ou aucun tissu ne correspond à votre filtre.
+            <div className="border border-gray-200 dark:border-gray-800 rounded-lg divide-y divide-gray-100 dark:divide-gray-900">
+                {[0, 1, 2, 3, 4].map(i => (
+                    <div key={i} className="px-6 py-4 flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-lg bg-gray-100 dark:bg-gray-900 animate-pulse" />
+                        <div className="h-9 flex-1 rounded bg-gray-100 dark:bg-gray-900 animate-pulse" />
+                        <div className="h-6 w-20 rounded-full bg-gray-100 dark:bg-gray-900 animate-pulse" />
+                    </div>
+                ))}
+            </div>
+        )
+    }
+
+    if (tissus.length === 0 && !loading) {
+        const isSearch = emptyContext === 'search'
+        const Icon = isSearch ? MagnifyingGlassIcon : SwatchIcon
+        return (
+            <div className="text-center py-12 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
+                <Icon className="mx-auto w-10 h-10 text-gray-400 dark:text-gray-600" />
+                <p className="mt-3 text-sm font-medium text-black dark:text-white">
+                    {isSearch
+                        ? 'Aucun tissu ne correspond à votre recherche.'
+                        : emptyContext === 'tab'
+                            ? 'Aucun tissu dans ce filtre.'
+                            : 'Catalogue vide.'}
+                </p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {isSearch
+                        ? 'Essayez un autre nom, texture ou couleur.'
+                        : emptyContext === 'tab'
+                            ? 'Bascule sur « Tous » pour voir l\'ensemble.'
+                            : 'Ajoutez votre premier tissu pour démarrer le catalogue.'}
                 </p>
             </div>
         )

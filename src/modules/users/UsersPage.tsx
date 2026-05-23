@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { adminAPI } from '@/lib/admin-api'
-import { PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline'
+import { PencilIcon, TrashIcon, EyeIcon, UserGroupIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { ROLES, ROLE_LABELS_FR, type Role } from '@/lib/roles'
 
 interface UserEntity {
@@ -280,36 +280,36 @@ export function UsersPage() {
                 )}
             </div>
 
-            {/* 🎯 ÉTAT VIDE - Aucun utilisateur */}
             {data && data.items.length === 0 && !loading && (
-                <div className="bg-white dark:bg-black rounded-lg shadow p-12 text-center border border-gray-300 dark:border-gray-700">
-                    <div className="text-4xl mb-4 text-black dark:text-white">👤</div>
-                    <h3 className="text-lg font-semibold text-black dark:text-white mb-2">
-                        Aucun utilisateur trouvé
-                    </h3>
-                    <p className="text-black dark:text-white mb-6">
-                        {q ? 
-                            `Aucun utilisateur ne correspond à "${q}"` : 
-                            'Il n\'y a pas encore d\'utilisateurs dans la base de données.'
-                        }
+                <div className="rounded-lg border border-dashed border-gray-300 dark:border-gray-700 p-12 text-center">
+                    {q ? (
+                        <MagnifyingGlassIcon className="mx-auto w-10 h-10 text-gray-400 dark:text-gray-600" />
+                    ) : (
+                        <UserGroupIcon className="mx-auto w-10 h-10 text-gray-400 dark:text-gray-600" />
+                    )}
+                    <p className="mt-3 text-sm font-medium text-black dark:text-white">
+                        {q ? `Aucun utilisateur ne correspond à "${q}".` : 'Aucun utilisateur pour l\'instant.'}
                     </p>
-                    <div className="space-y-3">
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        {q
+                            ? 'Essayez un autre nom, email ou téléphone.'
+                            : 'Créez un premier compte pour démarrer.'}
+                    </p>
+                    <div className="mt-4 flex justify-center gap-2">
                         {q && (
                             <button
                                 onClick={() => setQ('')}
-                                className="px-4 py-2 text-black dark:text-white border border-black dark:border-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+                                className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-700 rounded-lg text-black dark:text-white hover:bg-gray-50 dark:hover:bg-neutral-900 transition-colors"
                             >
-                                Voir tous les utilisateurs
+                                Voir tous
                             </button>
                         )}
-                        <div>
-                            <button
-                                onClick={() => setShowCreateModal(true)}
-                                className="px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors font-medium"
-                            >
-                                Créer le premier utilisateur
-                            </button>
-                        </div>
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="px-4 py-2 text-sm bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors font-medium"
+                        >
+                            {q ? 'Nouvel utilisateur' : 'Créer le premier utilisateur'}
+                        </button>
                     </div>
                 </div>
             )}
