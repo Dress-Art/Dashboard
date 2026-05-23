@@ -341,6 +341,9 @@ function DeliveryAdminPage() {
                         onAdvance={handleAdvance}
                         onCancel={handleCancel}
                         actionLoading={actionLoading}
+                        emptyContext={
+                            q.trim() ? 'search' : activeTab !== 'all' ? 'tab' : 'all'
+                        }
                     />
                 </div>
             </div>

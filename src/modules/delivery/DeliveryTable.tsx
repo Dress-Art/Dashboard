@@ -1,6 +1,6 @@
 'use client'
 
-import {EyeIcon, XMarkIcon, ArrowRightIcon, UserPlusIcon, LinkIcon} from '@heroicons/react/24/outline'
+import {EyeIcon, XMarkIcon, ArrowRightIcon, UserPlusIcon, LinkIcon, TruckIcon, MagnifyingGlassIcon} from '@heroicons/react/24/outline'
 import {notify} from '@/lib/toast'
 import {buildTrackingUrl} from '@/lib/deliveries-api'
 import {
@@ -41,6 +41,8 @@ interface DeliveryTableProps {
     /** Détails (futur — placeholder pour l'instant). */
     onView?: (delivery: DeliveryEntity) => void
     actionLoading: string | null
+    /** Contexte pour l'empty state — distingue "rien à afficher" / "filtre vide" / "recherche vide". */
+    emptyContext?: 'all' | 'tab' | 'search'
 }
 
 const STATUS_COLORS: Record<DeliveryStatus, string> = {
@@ -74,15 +76,27 @@ export function DeliveryTable({
     onCancel,
     onView,
     actionLoading,
+    emptyContext = 'all',
 }: DeliveryTableProps) {
     if (deliveries.length === 0 && !loading) {
+        const isSearch = emptyContext === 'search'
+        const Icon = isSearch ? MagnifyingGlassIcon : TruckIcon
         return (
-            <div className="text-center py-12 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900/50">
-                <h3 className="text-lg font-semibold text-black dark:text-white mb-2">
-                    Aucune livraison trouvée
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                    Les livraisons apparaîtront ici une fois créées.
+            <div className="text-center py-12 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
+                <Icon className="mx-auto w-10 h-10 text-gray-400 dark:text-gray-600" />
+                <p className="mt-3 text-sm font-medium text-black dark:text-white">
+                    {isSearch
+                        ? 'Aucune livraison ne correspond à votre recherche.'
+                        : emptyContext === 'tab'
+                            ? 'Aucune livraison dans cet onglet.'
+                            : 'Aucune livraison pour l\'instant.'}
+                </p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {isSearch
+                        ? 'Essayez un autre numéro, client ou livreur.'
+                        : emptyContext === 'tab'
+                            ? 'Bascule sur « Toutes » pour voir l\'ensemble.'
+                            : 'Les livraisons apparaîtront ici dès qu\'une commande passera en « Prêt pour livraison ».'}
                 </p>
             </div>
         )
@@ -127,14 +141,11 @@ export function DeliveryTable({
                                 </td>
                                 <td className="px-6 py-4">
                                     {d.driverId ? (
-                                        <div>
-                                            <div className="text-sm font-medium text-black dark:text-white">
-                                                {d.driverName || 'Livreur assigné'}
-                                            </div>
-                                            <div className="text-xs text-gray-600 dark:text-gray-400">ID: {d.driverId}</div>
+                                        <div className="text-sm font-medium text-black dark:text-white">
+                                            {d.driverName || 'Livreur assigné'}
                                         </div>
                                     ) : (
-                                        <span className="text-sm text-gray-600 dark:text-gray-400">Non assigné</span>
+                                        <span className="text-sm text-gray-500 dark:text-gray-400 italic">Non assigné</span>
                                     )}
                                 </td>
                                 <td className="px-6 py-4">
