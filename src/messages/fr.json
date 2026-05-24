@@ -221,6 +221,11 @@
 				"inactive": "Inactif",
 				"suspended": "Suspendu"
 			},
+			"roles": {
+				"admin": "Admin",
+				"editor": "Éditeur",
+				"viewer": "Lecteur"
+			},
 			"errors": {
 				"load_failed": "Impossible de charger les utilisateurs",
 				"create_failed": "Erreur lors de la création",
