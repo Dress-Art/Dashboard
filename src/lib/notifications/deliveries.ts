@@ -3,6 +3,7 @@ import 'server-only'
 import {sendWhatsAppText} from '@/lib/evolution-api'
 import {buildTrackingUrl, type DeliveryRow} from '@/lib/deliveries-api'
 import {DELIVERY_STATUS_LABELS_FR, type DeliveryStatus} from '@/types/delivery.types'
+import {logNotification} from './log'
 
 interface NotifyAssignInput {
     delivery: DeliveryRow
@@ -74,18 +75,43 @@ function buildAdminMessage(delivery: DeliveryRow, label: string): string {
     ].join('\n')
 }
 
-async function fireAndForget(to: string | null, text: string) {
-    if (!to) return
-    const result = await sendWhatsAppText(to, text)
+async function sendAndLog(args: {
+    to: string | null
+    text: string
+    event_type: string
+    delivery: DeliveryRow
+}): Promise<void> {
+    if (!args.to) return
+    const result = await sendWhatsAppText(args.to, args.text)
     if (!result.success && !result.skipped) {
         console.error('[deliveries notifications] WhatsApp failed:', result.error)
     }
+    await logNotification({
+        channel: 'whatsapp',
+        event_type: args.event_type,
+        recipient: args.to,
+        body: args.text,
+        related_order_id: args.delivery.order_id,
+        related_delivery_id: args.delivery.id,
+        success: result.success,
+        error: result.skipped ?? result.error ?? null,
+    })
 }
 
 export async function notifyDeliveryAssigned(input: NotifyAssignInput) {
     await Promise.all([
-        fireAndForget(input.driverPhone ?? null, buildDriverAssignmentMessage(input.delivery, input.driverName)),
-        fireAndForget(adminPhone(), buildAdminMessage(input.delivery, 'livraison assignée')),
+        sendAndLog({
+            to: input.driverPhone ?? null,
+            text: buildDriverAssignmentMessage(input.delivery, input.driverName),
+            event_type: 'delivery.assigned.driver',
+            delivery: input.delivery,
+        }),
+        sendAndLog({
+            to: adminPhone(),
+            text: buildAdminMessage(input.delivery, 'livraison assignée'),
+            event_type: 'delivery.assigned.admin',
+            delivery: input.delivery,
+        }),
     ])
 }
 
@@ -93,8 +119,18 @@ export async function notifyDeliveryStatusChanged(input: NotifyStatusInput) {
     const shouldNotifyCustomer = input.status === 'in_transit' || input.status === 'delivered'
     await Promise.all([
         shouldNotifyCustomer
-            ? fireAndForget(input.delivery.customer_phone, buildCustomerMessage(input.delivery, input.status))
+            ? sendAndLog({
+                  to: input.delivery.customer_phone,
+                  text: buildCustomerMessage(input.delivery, input.status),
+                  event_type: `delivery.${input.status}.customer`,
+                  delivery: input.delivery,
+              })
             : Promise.resolve(),
-        fireAndForget(adminPhone(), buildAdminMessage(input.delivery, `livraison -> ${DELIVERY_STATUS_LABELS_FR[input.status]}`)),
+        sendAndLog({
+            to: adminPhone(),
+            text: buildAdminMessage(input.delivery, `livraison -> ${DELIVERY_STATUS_LABELS_FR[input.status]}`),
+            event_type: `delivery.${input.status}.admin`,
+            delivery: input.delivery,
+        }),
     ])
 }

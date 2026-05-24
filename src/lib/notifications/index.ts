@@ -1,6 +1,24 @@
 import 'server-only'
 
 import {sendWhatsAppText, type SendResult} from '@/lib/evolution-api'
+import {logNotification} from './log'
+
+async function sendAndLog(args: {
+    to: string
+    text: string
+    event_type: string
+}): Promise<SendResult> {
+    const result = await sendWhatsAppText(args.to, args.text)
+    await logNotification({
+        channel: 'whatsapp',
+        event_type: args.event_type,
+        recipient: args.to,
+        body: args.text,
+        success: result.success,
+        error: result.skipped ?? result.error ?? null,
+    })
+    return result
+}
 
 /**
  * Templates WhatsApp transactionnels DressArt.
@@ -40,7 +58,7 @@ export const notify = {
             `Statut actuel : ${statusLabel}`,
             'Merci de faire avancer cette commande dès que possible.',
         ].join('\n')
-        return sendWhatsAppText(couturierPhone, text)
+        return sendAndLog({to: couturierPhone, text, event_type: 'order.couturier_reminder'})
     },
 
     /** Confirmation envoyée au client juste après création de la commande. */
@@ -50,7 +68,7 @@ export const notify = {
             `Couturier attribué : ${couturierName}.`,
             'Nous vous tiendrons informé(e) à chaque étape.',
         ].join('\n')
-        return sendWhatsAppText(clientPhone, text)
+        return sendAndLog({to: clientPhone, text, event_type: 'order.confirmed'})
     },
 
     /** Notification client après prise de RDV avec un agent (prise de mesures). */
@@ -66,7 +84,7 @@ export const notify = {
             `Heure : ${appointmentTime}`,
             'Un agent vous contactera juste avant le RDV.',
         ].join('\n')
-        return sendWhatsAppText(clientPhone, text)
+        return sendAndLog({to: clientPhone, text, event_type: 'agent.appointment.booked'})
     },
 
     /** Notification client quand la couture démarre. */
@@ -81,7 +99,7 @@ export const notify = {
             `Couturier : ${couturierName}`,
             `Délai estimé : ${estimatedDays} jour(s).`,
         ].join('\n')
-        return sendWhatsAppText(clientPhone, text)
+        return sendAndLog({to: clientPhone, text, event_type: 'order.in_progress'})
     },
 
     /** Notification client quand la commande est prête à livrer. */
@@ -91,7 +109,7 @@ export const notify = {
             `Couturier : ${couturierName}.`,
             'Vous recevrez bientôt un lien de suivi de livraison.',
         ].join('\n')
-        return sendWhatsAppText(clientPhone, text)
+        return sendAndLog({to: clientPhone, text, event_type: 'order.ready'})
     },
 
     /** Notification couturier d'une nouvelle commande qui lui est assignée. */
@@ -109,7 +127,7 @@ export const notify = {
             `Modèle : ${modelName}`,
             `Méthode : ${methodLabel}.`,
         ].join('\n')
-        return sendWhatsAppText(couturierPhone, text)
+        return sendAndLog({to: couturierPhone, text, event_type: 'order.new.couturier'})
     },
 
     /** Notification couturier quand le client a saisi ses mesures. */
@@ -119,7 +137,7 @@ export const notify = {
             `Client : ${clientName}`,
             'Vous pouvez démarrer la couture.',
         ].join('\n')
-        return sendWhatsAppText(couturierPhone, text)
+        return sendAndLog({to: couturierPhone, text, event_type: 'order.measures_received'})
     },
 
     /** Notification couturier quand l'agent a transmis les mesures. */
@@ -129,6 +147,6 @@ export const notify = {
             `Client : ${clientName}`,
             'Vous pouvez démarrer la couture.',
         ].join('\n')
-        return sendWhatsAppText(couturierPhone, text)
+        return sendAndLog({to: couturierPhone, text, event_type: 'order.measures_transmitted'})
     },
 }
