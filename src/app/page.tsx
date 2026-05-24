@@ -4,6 +4,7 @@ import {useRouter} from 'next/navigation'
 import {DashboardLayout} from '@/components/layout/DashboardLayout'
 import type {GridItem} from '@/components/dashboard/DraggableGrid'
 import {DraggableGridClient} from '@/components/dashboard/DraggableGridClient'
+import {BusinessKpiStrip} from '@/components/dashboard/BusinessKpiStrip'
 import dashboardConfig from '@/config/dashboard.json'
 import {AnalyticsWidget} from '@/modules/analytics/AnalyticsWidget'
 import {UsersTable} from '@/modules/users/UsersTable'
@@ -108,7 +109,10 @@ export default function Home() {
 
     return (
         <DashboardLayout>
-            <DraggableGridClient items={items} />
+            <div className="space-y-6">
+                <BusinessKpiStrip />
+                <DraggableGridClient items={items} />
+            </div>
         </DashboardLayout>
     )
 }
