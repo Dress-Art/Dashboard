@@ -257,6 +257,33 @@ async function handleDeliveryStatusUpdate(
     return NextResponse.json({ok: true})
 }
 
+async function persistInbound(args: {
+    sender: string | null
+    text: string
+    mediaUrl: string | null
+    commandType: string | null
+    handledStatus: string
+    payload: unknown
+}): Promise<void> {
+    if (!args.sender) return
+    try {
+        const supabase = createSupabaseServiceClient()
+        const {error} = await supabase.from('whatsapp_inbound_messages').insert({
+            from_phone: args.sender,
+            body: args.text || null,
+            media_url: args.mediaUrl,
+            command_type: args.commandType,
+            handled_status: args.handledStatus,
+            raw_payload: args.payload as Record<string, unknown>,
+        })
+        if (error) {
+            console.warn('[evolution webhook] persist inbound failed:', error.message)
+        }
+    } catch (err) {
+        console.warn('[evolution webhook] persist inbound threw:', err instanceof Error ? err.message : err)
+    }
+}
+
 export async function POST(request: NextRequest) {
     if (!isAuthorizedWebhook(request)) {
         return NextResponse.json({ok: false, error: 'unauthorized_webhook'}, {status: 401})
@@ -270,11 +297,32 @@ export async function POST(request: NextRequest) {
 
     const text = extractText(payload)
     const sender = extractSender(payload)
+    const mediaUrl = extractMediaUrl(payload)
     const command = parseCommand(text)
 
     if (!sender || !command) {
+        // On persiste quand même les messages non-commande pour que le
+        // module Chats côté admin puisse les afficher dans l'inbox.
+        await persistInbound({
+            sender,
+            text,
+            mediaUrl,
+            commandType: null,
+            handledStatus: sender ? 'ignored:unrecognized_payload' : 'ignored:no_sender',
+            payload,
+        })
         return NextResponse.json({ok: true, ignored: 'unrecognized_payload'})
     }
+
+    // Persistance avant traitement, pour ne pas perdre la trace en cas d'erreur.
+    await persistInbound({
+        sender,
+        text,
+        mediaUrl,
+        commandType: command.type,
+        handledStatus: 'received',
+        payload,
+    })
 
     // Handle claim order command
     if (command.type === 'claim_order') {
