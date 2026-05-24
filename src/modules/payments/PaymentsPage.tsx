@@ -3,8 +3,8 @@
 import {useCallback, useEffect, useMemo, useState} from 'react'
 import {ArrowPathIcon, BanknotesIcon, MagnifyingGlassIcon} from '@heroicons/react/24/outline'
 import {notify} from '@/lib/toast'
-import type {FedaPayStatus, FedaPayTransaction, ListResult} from '@/lib/fedapay'
-import {formatCustomer} from '@/lib/fedapay'
+import type {FedaPayStatus, FedaPayTransaction, ListResult} from '@/lib/fedapay-types'
+import {formatCustomer} from '@/lib/fedapay-types'
 
 type StatusTab = 'all' | 'approved' | 'pending' | 'declined' | 'refunded'
 

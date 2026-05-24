@@ -1,7 +1,8 @@
 import {NextResponse, type NextRequest} from 'next/server'
 import {createSupabaseServerClient} from '@/lib/supabase/server'
 import {getUserRole, isProfessionalRole} from '@/lib/roles'
-import {listTransactions, type FedaPayStatus} from '@/lib/fedapay'
+import {listTransactions} from '@/lib/fedapay'
+import type {FedaPayStatus} from '@/lib/fedapay-types'
 
 /**
  * GET /api/payments
