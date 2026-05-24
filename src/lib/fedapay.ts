@@ -56,18 +56,23 @@ export async function listTransactions(params: ListParams = {}): Promise<ListRes
         return {transactions: [], total: 0, skipped: 'fedapay_not_configured'}
     }
 
+    // FedaPay a déprécié GET /v1/transactions au profit de POST /v1/transactions/search.
+    // La pagination reste sur query string ; les filtres passent dans `search` côté body.
     const query = new URLSearchParams()
     query.set('per_page', String(params.perPage ?? 25))
     if (params.page) query.set('page', String(params.page))
-    if (params.status) query.set('status', params.status)
 
-    const url = `${config.baseUrl}/v1/transactions?${query.toString()}`
+    const search: Record<string, unknown> = {}
+    if (params.status) search.status = params.status
+
+    const url = `${config.baseUrl}/v1/transactions/search?${query.toString()}`
     const res = await fetch(url, {
-        method: 'GET',
+        method: 'POST',
         headers: {
             Authorization: `Bearer ${config.apiKey}`,
             'Content-Type': 'application/json',
         },
+        body: JSON.stringify({search}),
         cache: 'no-store',
     })
 

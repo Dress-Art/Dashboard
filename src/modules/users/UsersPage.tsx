@@ -344,7 +344,7 @@ export function UsersPage() {
                                         <td className="px-6 py-4">
                                             <div className="flex items-center">
                                                 <div className="w-10 h-10 bg-black dark:bg-white rounded-full flex items-center justify-center text-white dark:text-black font-medium">
-                                                    {user.name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
+                                                    {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'}
                                                 </div>
                                                 <div className="ml-3">
                                                     <div className="text-sm font-medium text-black dark:text-white">
@@ -568,7 +568,7 @@ export function UsersPage() {
                         <div className="space-y-4">
                             <div className="flex items-center gap-4">
                                 <div className="w-14 h-14 bg-black dark:bg-white rounded-full flex items-center justify-center text-white dark:text-black text-xl font-bold">
-                                    {viewingUser.name?.[0]?.toUpperCase() || viewingUser.email[0].toUpperCase()}
+                                    {viewingUser.name?.[0]?.toUpperCase() || viewingUser.email?.[0]?.toUpperCase() || '?'}
                                 </div>
                                 <div>
                                     <div className="text-lg font-semibold text-black dark:text-white">{viewingUser.name || 'Sans nom'}</div>
