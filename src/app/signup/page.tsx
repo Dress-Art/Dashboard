@@ -4,9 +4,12 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { useAuthContext } from '@/contexts/AuthContext'
+import { GoogleButton } from '@/app/login/page'
 
 export default function SignupPage() {
     const router = useRouter()
+    const {signInWithGoogle} = useAuthContext()
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -14,8 +17,23 @@ export default function SignupPage() {
         name: '',
     })
     const [loading, setLoading] = useState(false)
+    const [googleLoading, setGoogleLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
+
+    const handleGoogleSignIn = async () => {
+        try {
+            setGoogleLoading(true)
+            const result = (await signInWithGoogle()) as {error?: {message: string}}
+            if (result.error) {
+                setError(result.error.message)
+                setGoogleLoading(false)
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'unknown_error')
+            setGoogleLoading(false)
+        }
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -108,7 +126,18 @@ export default function SignupPage() {
                         Join DressArt to access your professional dashboard
                     </p>
                 </div>
-                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+                <div className="mt-8">
+                    <GoogleButton onClick={handleGoogleSignIn} loading={googleLoading} label="S'inscrire avec Google" />
+                    <div className="relative my-6">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-gray-200" />
+                        </div>
+                        <div className="relative flex justify-center text-xs">
+                            <span className="bg-gray-50 px-2 text-gray-500">ou</span>
+                        </div>
+                    </div>
+                </div>
+                <form className="space-y-6" onSubmit={handleSubmit}>
                     <div className="space-y-4">
                         <div>
                             <label htmlFor="name" className="block text-sm font-medium text-gray-700">

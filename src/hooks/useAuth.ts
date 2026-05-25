@@ -71,6 +71,24 @@ export function useAuth() {
     }
 
     /**
+     * Lance le flow OAuth Google. Le redirect Supabase envoie vers
+     * `${SITE_URL}/auth/callback?next=/` qui fait l'exchange PKCE côté serveur
+     * (cookie HttpOnly invisible côté client) puis renvoie sur la home.
+     */
+    const signInWithGoogle = async () => {
+        const siteUrl =
+            process.env.NEXT_PUBLIC_SITE_URL ||
+            (typeof window !== 'undefined' ? window.location.origin : '')
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: `${siteUrl}/auth/callback?next=/`,
+            },
+        })
+        return { data, error }
+    }
+
+    /**
      * Envoie un email de réinitialisation de mot de passe avec un lien
      * pointant vers `${NEXT_PUBLIC_SITE_URL}/reset-password`.
      */
@@ -125,6 +143,7 @@ export function useAuth() {
         signIn,
         signUp,
         signOut,
+        signInWithGoogle,
         resetPassword,
         updatePassword,
         requestPhoneOtp,

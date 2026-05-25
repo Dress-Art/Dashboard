@@ -14,6 +14,7 @@ interface AuthContextType {
     signIn: (email: string, password: string) => Promise<unknown>
     signUp: (email: string, password: string, metadata?: Record<string, unknown>) => Promise<unknown>
     signOut: () => Promise<unknown>
+    signInWithGoogle: () => Promise<unknown>
     resetPassword: (email: string) => Promise<unknown>
     updatePassword: (newPassword: string) => Promise<unknown>
     requestPhoneOtp: (phoneE164: string) => Promise<unknown>
