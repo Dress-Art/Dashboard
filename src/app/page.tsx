@@ -1,77 +1,35 @@
 'use client'
+
 import {useEffect} from 'react'
 import {useRouter} from 'next/navigation'
 import {DashboardLayout} from '@/components/layout/DashboardLayout'
-import type {GridItem} from '@/components/dashboard/DraggableGrid'
-import {DraggableGridClient} from '@/components/dashboard/DraggableGridClient'
 import {BusinessKpiStrip} from '@/components/dashboard/BusinessKpiStrip'
-import dashboardConfig from '@/config/dashboard.json'
-import {AnalyticsWidget} from '@/modules/analytics/AnalyticsWidget'
-import {UsersTable} from '@/modules/users/UsersTable'
-import {NotificationsFeed} from '@/modules/notifications/NotificationsFeed'
-import {EmailsWidget} from '@/modules/emails/EmailsWidget'
-import {FeedbacksWidget} from '@/modules/feedbacks/FeedbacksWidget'
-import {PaymentsWidget} from '@/modules/payments/PaymentsWidget'
-import {CalendarWidget} from '@/modules/calendar/CalendarWidget'
-import {SubscriptionsWidget} from '@/modules/subscriptions/SubscriptionsWidget'
-import {ChatsWidget} from '@/modules/chats/ChatsWidget'
-import {ApisWidget} from '@/modules/apis/ApisWidget'
-import {MonitoringWidget} from '@/modules/monitoring/MonitoringWidget'
-import {LanguagesWidget} from '@/modules/languages/LanguagesWidget'
-import {SettingsWidget} from '@/modules/settings/SettingsWidget'
+import {RecentOrdersWidget} from '@/components/dashboard/widgets/RecentOrdersWidget'
+import {RecentDeliveriesWidget} from '@/components/dashboard/widgets/RecentDeliveriesWidget'
+import {RecentNotificationsWidget} from '@/components/dashboard/widgets/RecentNotificationsWidget'
+import {UpcomingAppointmentsWidget} from '@/components/dashboard/widgets/UpcomingAppointmentsWidget'
 import {useAuthContext} from '@/contexts/AuthContext'
 import type {Role} from '@/lib/roles'
-import type {DashboardConfig, DashboardModule} from '@/types/dashboard'
-import type {ReactNode} from 'react'
 
 /**
- * Page d'accueil par rôle. L'admin garde la grille de widgets ; les autres
- * professionnels sont redirigés vers leur module métier principal.
+ * Tableau de bord admin.
+ *
+ * Les rôles non-admin sont redirigés vers leur module métier principal.
+ * Pour l'admin, on affiche :
+ *   1. La frise KPI (revenue, comptages, livraisons en cours)
+ *   2. Quatre widgets temps réel branchés sur les vraies tables
+ *      (orders, deliveries, notifications_log, orders.appointment_date).
+ *
+ * La grille draggable des widgets mock (Analytics, Users, Notifications,
+ * Emails, Payments, Calendar, Chats…) a été retirée : ces écrans existent
+ * déjà comme pages dédiées avec vraies données, pas besoin de doublons
+ * sur la home.
  */
 const ROLE_LANDING: Partial<Record<Role, string>> = {
     couturier: '/modules/couturier',
     agent: '/modules/orders',
     livreur: '/me/deliveries',
     vendeur: '/modules/tissus',
-}
-
-/**
- * Home
- * Page d'accueil du dashboard. L'auth + le gate professionnel sont gérés par
- * DashboardLayout (cf. composant). On se concentre ici sur la composition des
- * widgets selon `dashboard.json`.
- */
-function renderModule(key: DashboardModule['key']): ReactNode {
-    switch (key) {
-        case 'analytics':
-            return <AnalyticsWidget />
-        case 'users':
-            return <UsersTable />
-        case 'notifications':
-            return <NotificationsFeed />
-        case 'emails':
-            return <EmailsWidget />
-        case 'feedbacks':
-            return <FeedbacksWidget />
-        case 'payments':
-            return <PaymentsWidget />
-        case 'calendar':
-            return <CalendarWidget />
-        case 'subscriptions':
-            return <SubscriptionsWidget />
-        case 'chats':
-            return <ChatsWidget />
-        case 'apis':
-            return <ApisWidget />
-        case 'monitoring':
-            return <MonitoringWidget />
-        case 'languages':
-            return <LanguagesWidget />
-        case 'settings':
-            return <SettingsWidget />
-        default:
-            return null
-    }
 }
 
 export default function Home() {
@@ -95,23 +53,17 @@ export default function Home() {
         )
     }
 
-    const cfg = dashboardConfig as DashboardConfig
-    const items: GridItem[] = (cfg.modules || [])
-        .filter((m: DashboardModule) => m.visible)
-        .filter((m: DashboardModule) => {
-            if (!m.roles || m.roles.length === 0) return true
-            if (!role) return false
-            return m.roles.includes(role)
-        })
-        .sort((a: DashboardModule, b: DashboardModule) => a.order - b.order)
-        .map((m: DashboardModule) => ({id: m.key, content: renderModule(m.key)}))
-        .filter(it => it.content !== null)
-
     return (
         <DashboardLayout>
             <div className="space-y-6">
                 <BusinessKpiStrip />
-                <DraggableGridClient items={items} />
+
+                <div className="grid gap-4 lg:grid-cols-2">
+                    <RecentOrdersWidget />
+                    <RecentDeliveriesWidget />
+                    <UpcomingAppointmentsWidget />
+                    <RecentNotificationsWidget />
+                </div>
             </div>
         </DashboardLayout>
     )
