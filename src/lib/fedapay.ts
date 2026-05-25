@@ -56,24 +56,23 @@ export async function listTransactions(params: ListParams = {}): Promise<ListRes
         return {transactions: [], total: 0, skipped: 'fedapay_not_configured'}
     }
 
-    // FedaPay a déprécié GET /v1/transactions au profit de POST /v1/transactions/search.
-    // L'API accepte un body minimal `{}` quand aucun filtre n'est requis ; les
-    // filtres se passent à plat dans le body (status, reference, etc.).
+    // FedaPay a déprécié GET /v1/transactions au profit de GET /v1/transactions/search
+    // (cf. SDK PHP officiel : ApiOperations\Search trait → GET avec ?search=*).
+    // Tous les paramètres (search wildcard, status, page, per_page) passent en
+    // query string ; il n'y a pas de body.
     const query = new URLSearchParams()
+    query.set('search', '*')
     query.set('per_page', String(params.perPage ?? 25))
     if (params.page) query.set('page', String(params.page))
-
-    const body: Record<string, unknown> = {}
-    if (params.status) body.status = params.status
+    if (params.status) query.set('status', params.status)
 
     const url = `${config.baseUrl}/v1/transactions/search?${query.toString()}`
     const res = await fetch(url, {
-        method: 'POST',
+        method: 'GET',
         headers: {
             Authorization: `Bearer ${config.apiKey}`,
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(body),
         cache: 'no-store',
     })
 
