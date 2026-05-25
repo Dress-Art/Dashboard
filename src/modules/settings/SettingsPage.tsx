@@ -7,6 +7,7 @@ import {useDispatch, useSelector} from 'react-redux'
 import {setThemeMode, toggleSidebar} from '@/store/store'
 import type {RootState, ThemeMode} from '@/store/store'
 import {AdminSettings} from './components/admin-settings'
+import {useAuthContext} from '@/contexts/AuthContext'
 
 /**
  * SettingsPage — paramètres dashboard.
@@ -27,7 +28,9 @@ export function SettingsPage() {
     const tTabs = useTranslations('pages.settings.tabs')
     const tW = useTranslations('widgets.settings')
     const dispatch = useDispatch()
+    const {role} = useAuthContext()
     const {themeMode, sidebarOpen} = useSelector((s: RootState) => s.ui)
+    const isAdmin = role === 'admin'
 
     type TabKey = 'dashboard' | 'team' | 'system'
     const [tab, setTab] = useState<TabKey>('dashboard')
@@ -71,17 +74,19 @@ export function SettingsPage() {
                 >
                     {tTabs('dashboard')}
                 </button>
-                <button
-                    id="tab-team"
-                    role="tab"
-                    aria-selected={tab === 'team'}
-                    aria-controls="panel-team"
-                    onClick={handleSelect('team')}
-                    className={`${tabBtnBase} ${tab === 'team' ? tabBtnActive : tabBtnInactive}`}
-                    data-testid="tab-team"
-                >
-                    {tTabs('team')}
-                </button>
+                {isAdmin && (
+                    <button
+                        id="tab-team"
+                        role="tab"
+                        aria-selected={tab === 'team'}
+                        aria-controls="panel-team"
+                        onClick={handleSelect('team')}
+                        className={`${tabBtnBase} ${tab === 'team' ? tabBtnActive : tabBtnInactive}`}
+                        data-testid="tab-team"
+                    >
+                        {tTabs('team')}
+                    </button>
+                )}
                 <button
                     id="tab-system"
                     role="tab"
@@ -107,16 +112,18 @@ export function SettingsPage() {
                     <SettingsWidget />
                 </div>
 
-                <div
-                    id="panel-team"
-                    role="tabpanel"
-                    aria-labelledby="tab-team"
-                    hidden={tab !== 'team'}
-                    className={panelClass}
-                    data-testid="panel-team"
-                >
-                    <AdminSettings />
-                </div>
+                {isAdmin && (
+                    <div
+                        id="panel-team"
+                        role="tabpanel"
+                        aria-labelledby="tab-team"
+                        hidden={tab !== 'team'}
+                        className={panelClass}
+                        data-testid="panel-team"
+                    >
+                        <AdminSettings />
+                    </div>
+                )}
 
                 <div
                     id="panel-system"

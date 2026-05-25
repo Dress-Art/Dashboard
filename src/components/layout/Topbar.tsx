@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useTransition } from 'react'
+import Link from 'next/link'
 import { useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useDispatch, useSelector } from 'react-redux'
@@ -87,14 +88,18 @@ export function Topbar() {
 				</div>
 
 				{user && (
-					<div className="flex items-center space-x-3">
+					<Link
+						href="/me/profile"
+						className="flex items-center space-x-3 rounded-full px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+						title="Mon profil"
+					>
 						<div className="w-8 h-8 rounded-full bg-black dark:bg-white flex items-center justify-center font-bold text-white dark:text-black">
-							{user.email?.[0].toUpperCase()}
+							{user.email?.[0]?.toUpperCase() ?? user.phone?.[0] ?? '?'}
 						</div>
 						<span className="text-sm font-medium text-black dark:text-white">
-							{user.email}
+							{user.email ?? user.phone ?? 'Profil'}
 						</span>
-					</div>
+					</Link>
 				)}
 			</div>
 		</header>
