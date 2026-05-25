@@ -3,9 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ClientsTable } from './ClientsTable'
 import { PlusIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
-import { coutureAPI } from '@/lib/couture-api'
+import { listClients, createClient, updateClient, deleteClient } from '@/lib/couturier-api'
 import { notify } from '@/lib/toast'
-import { useAuthContext } from '@/contexts/AuthContext'
 
 type ClientStatus = 'active' | 'inactive' | 'suspended'
 
@@ -48,7 +47,6 @@ const EMPTY_FORM: ClientFormData = {
 }
 
 export function ClientsPage() {
-    const {user, role} = useAuthContext()
     const [q, setQ] = useState('')
     const [loading, setLoading] = useState(false)
     const [data, setData] = useState<{items: ClientEntity[]; total: number} | null>(null)
@@ -68,11 +66,23 @@ export function ClientsPage() {
     const loadClients = useCallback(async () => {
         try {
             setLoading(true)
-            const result = await coutureAPI.listClients({search: q.trim()})
-            setData({
-                items: result.clients || [],
-                total: result.total || 0,
-            })
+            const result = await listClients({search: q.trim()})
+            const items = result.clients.map(c => ({
+                id: c.id,
+                name: c.name,
+                email: c.email ?? '',
+                phone: c.phone ?? '',
+                address: c.address ?? '',
+                city: c.city ?? '',
+                postal_code: c.postal_code ?? '',
+                status: c.status,
+                total_orders: c.total_orders ?? 0,
+                total_spent: c.total_spent ?? 0,
+                created_at: c.created_at,
+                last_order_at: c.last_order_at ?? undefined,
+                notes: c.notes ?? undefined,
+            }))
+            setData({items, total: result.total})
         } catch (err) {
             console.error('Erreur chargement clients:', err)
             notify.error(err)
@@ -128,25 +138,21 @@ export function ClientsPage() {
         try {
             setActionLoading(mode)
             if (mode === 'create') {
-                // RLS INSERT exige professional_id (couturier) ou created_by_agent_id (agent)
-                // = auth.uid() pour passer la policy. Auto-rempli depuis le contexte auth.
-                const ownership: {professional_id?: string; created_by_agent_id?: string} =
-                    role === 'couturier' && user ? {professional_id: user.id}
-                    : role === 'agent' && user  ? {created_by_agent_id: user.id}
-                    : {}
-                await coutureAPI.createClient({
+                // L'helper createClient injecte professional_id = auth.uid() pour
+                // que la RLS INSERT couturier passe. Cas agent à gérer côté
+                // server action si on l'autorise plus tard.
+                await createClient({
                     name: form.name,
                     email: form.email,
                     phone: form.phone,
-                    address: form.address || undefined,
-                    city: form.city || undefined,
-                    postal_code: form.postal_code || undefined,
-                    notes: form.notes || undefined,
-                    ...ownership,
+                    address: form.address || null,
+                    city: form.city || null,
+                    postal_code: form.postal_code || null,
+                    notes: form.notes || null,
                 })
                 notify.success('Client créé', form.name)
             } else if (mode === 'edit' && activeClient) {
-                await coutureAPI.updateClient(activeClient.id, {
+                await updateClient(activeClient.id, {
                     name: form.name,
                     email: form.email,
                     phone: form.phone,
@@ -171,7 +177,7 @@ export function ClientsPage() {
         const name = activeClient.name
         try {
             setActionLoading(`delete-${activeClient.id}`)
-            await coutureAPI.deleteClient(activeClient.id)
+            await deleteClient(activeClient.id)
             notify.success('Client supprimé', name)
             closeModal()
             await loadClients()
