@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { PlusIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
-import { listModels, createModel } from '@/lib/couturier-api'
+import { PlusIcon, ArrowDownTrayIcon, PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { listModels, createModel, uploadModelImage } from '@/lib/couturier-api'
 import { ModelsTable } from './ModelsTable'
 
 interface ModelEntity {
@@ -10,6 +10,7 @@ interface ModelEntity {
     name: string
     description: string
     price: number
+    image_url: string | null
     created_at: string
 }
 
@@ -30,6 +31,8 @@ export function ModelsPage() {
         description: '',
         price: 0
     })
+    const [newImageFile, setNewImageFile] = useState<File | null>(null)
+    const [newImagePreview, setNewImagePreview] = useState<string | null>(null)
 
     const translateError = (err: any): string => {
         if (err?.message?.includes('Failed to fetch') || err?.message?.includes('fetch')) {
@@ -57,6 +60,7 @@ export function ModelsPage() {
                     name: m.name,
                     description: m.description ?? '',
                     price: m.price,
+                    image_url: m.image_url ?? null,
                     created_at: m.created_at,
                 })),
                 total: result.total
@@ -81,19 +85,26 @@ export function ModelsPage() {
 
     const handleCreateModel = async (e: React.FormEvent) => {
         e.preventDefault()
-        
+
         if (!newModel.name || newModel.price <= 0) {
             setError('Le nom et un prix valide sont requis')
+            return
+        }
+        if (!newImageFile) {
+            setError('Une image du modèle est requise')
             return
         }
 
         try {
             setActionLoading('create')
             setError(null)
-            
-            await createModel(newModel)
+
+            const imageUrl = await uploadModelImage(newImageFile)
+            await createModel({...newModel, image_url: imageUrl})
 
             setNewModel({ name: '', description: '', price: 0 })
+            setNewImageFile(null)
+            setNewImagePreview(null)
             setShowCreateModal(false)
             await loadModels()
 
@@ -102,6 +113,24 @@ export function ModelsPage() {
         } finally {
             setActionLoading(null)
         }
+    }
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] ?? null
+        if (!file) {
+            setNewImageFile(null)
+            setNewImagePreview(null)
+            return
+        }
+        setNewImageFile(file)
+        const reader = new FileReader()
+        reader.onloadend = () => setNewImagePreview(typeof reader.result === 'string' ? reader.result : null)
+        reader.readAsDataURL(file)
+    }
+
+    const clearImage = () => {
+        setNewImageFile(null)
+        setNewImagePreview(null)
     }
 
     const handleSearch = (e: React.FormEvent) => {
@@ -208,12 +237,46 @@ export function ModelsPage() {
                             />
                             <input
                                 type="number"
-                                placeholder="Prix *"
-                                value={newModel.price}
+                                placeholder="Prix (FCFA) *"
+                                value={newModel.price || ''}
                                 onChange={(e) => setNewModel(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
                                 className="w-full px-4 py-2 border border-gray-700 rounded-lg bg-transparent text-white"
                                 required
                             />
+
+                            <div>
+                                <label className="block text-xs font-medium text-white/70 mb-2">Photo du modèle *</label>
+                                {newImagePreview ? (
+                                    <div className="relative">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                            src={newImagePreview}
+                                            alt="Aperçu"
+                                            className="w-full h-48 object-cover rounded-lg border border-gray-700"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={clearImage}
+                                            className="absolute top-2 right-2 p-1 bg-black/80 text-white rounded-full hover:bg-black"
+                                            aria-label="Retirer l'image"
+                                        >
+                                            <XMarkIcon className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-700 rounded-lg cursor-pointer hover:border-gray-500 transition-colors">
+                                        <PhotoIcon className="w-8 h-8 text-gray-500 mb-2" />
+                                        <span className="text-xs text-gray-400">Cliquez pour téléverser une image</span>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleImageChange}
+                                            className="hidden"
+                                        />
+                                    </label>
+                                )}
+                            </div>
+
                             <div className="flex gap-3 pt-2">
                                 <button
                                     type="button"

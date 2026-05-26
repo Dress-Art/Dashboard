@@ -1,14 +1,14 @@
 'use client'
 
-import { PencilIcon, EyeIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { PencilIcon, EyeIcon, TrashIcon, PhotoIcon } from '@heroicons/react/24/outline'
 
 interface ModelEntity {
     id: string
     name: string
     description: string
     price: number
+    image_url?: string | null
     created_at: string
-    // ... autres champs
 }
 
 interface ModelsTableProps {
@@ -51,6 +51,7 @@ export function ModelsTable({
             <table className="w-full border-collapse">
                 <thead>
                     <tr className="border-b border-gray-300 dark:border-gray-700">
+                        <th className="text-left px-6 py-4 font-semibold text-black dark:text-white">Image</th>
                         <th className="text-left px-6 py-4 font-semibold text-black dark:text-white">Nom du modèle</th>
                         <th className="text-left px-6 py-4 font-semibold text-black dark:text-white">Description</th>
                         <th className="text-right px-6 py-4 font-semibold text-black dark:text-white">Prix</th>
@@ -65,6 +66,20 @@ export function ModelsTable({
                                 idx === models.length - 1 ? 'border-b-0' : ''
                             }`}
                         >
+                            <td className="px-6 py-4">
+                                {model.image_url ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                        src={model.image_url}
+                                        alt={model.name}
+                                        className="w-14 h-14 rounded-lg object-cover border border-gray-200 dark:border-gray-700"
+                                    />
+                                ) : (
+                                    <div className="w-14 h-14 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center">
+                                        <PhotoIcon className="w-5 h-5 text-gray-400" />
+                                    </div>
+                                )}
+                            </td>
                             <td className="px-6 py-4">
                                 <div className="font-medium text-black dark:text-white">{model.name}</div>
                                 <div className="text-sm text-gray-600 dark:text-gray-400">{formatDate(model.created_at)}</div>

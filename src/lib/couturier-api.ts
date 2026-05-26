@@ -20,6 +20,7 @@ export interface ModelRow {
     name: string
     description: string | null
     price: number
+    image_url: string | null
     created_at: string
 }
 
@@ -68,6 +69,7 @@ export async function listModels(params: ListModelsParams = {}): Promise<{
             name: (row.name as string) ?? '',
             description: (row.description as string | null) ?? null,
             price,
+            image_url: (row.image_url as string | null) ?? null,
             created_at: (row.created_at as string) ?? new Date().toISOString(),
         } as ModelRow
     })
@@ -79,6 +81,7 @@ export async function createModel(input: {
     name: string
     description?: string
     price: number
+    image_url?: string | null
 }): Promise<ModelRow> {
     const {data: {user}} = await supabase.auth.getUser()
     if (!user) throw new Error('Non authentifié')
@@ -91,6 +94,7 @@ export async function createModel(input: {
             name: input.name,
             description: input.description ?? null,
             prix: input.price,
+            image_url: input.image_url ?? null,
             professional_id: user.id,
         })
         .select()
@@ -98,6 +102,28 @@ export async function createModel(input: {
 
     if (error) throw error
     return data as ModelRow
+}
+
+/**
+ * Upload une image de modèle dans le bucket public `model-images`.
+ * Path : `<user_id>/<model_id-or-timestamp>/<filename>`.
+ * Retourne l'URL publique exploitable directement par <img src=...>.
+ */
+export async function uploadModelImage(file: File, modelKey?: string): Promise<string> {
+    const {data: {user}} = await supabase.auth.getUser()
+    if (!user) throw new Error('Non authentifié')
+
+    const key = modelKey ?? String(Date.now())
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+    const path = `${user.id}/${key}/${safeName}`
+
+    const {error: uploadError} = await supabase.storage
+        .from('model-images')
+        .upload(path, file, {upsert: true, contentType: file.type || undefined})
+    if (uploadError) throw uploadError
+
+    const {data} = supabase.storage.from('model-images').getPublicUrl(path)
+    return data.publicUrl
 }
 
 interface ListMeasurementsParams {
