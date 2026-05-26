@@ -3,6 +3,7 @@ import type {DashboardModule} from '@/types/dashboard'
 import {UsersPage} from '@/modules/users/UsersPage'
 import {DeliveryPage} from '@/modules/delivery/DeliveryPage'
 import {CouturierModulePage} from '@/modules/couturier/CouturierModulePage'
+import {ModelsPage} from '@/modules/couturier/ModelsPage'
 import {TissusPage} from '@/modules/tissus/TissusPage'
 import {NotificationsPage} from '@/modules/notifications/NotificationsPage'
 import {EmailsPage} from '@/modules/emails/EmailsPage'
@@ -44,6 +45,8 @@ function renderModulePage(key: DashboardModule['key']) {
             return <DeliveryPage />
         case 'couturier':
             return <CouturierModulePage />
+        case 'models':
+            return <ModelsPage />
         case 'tissus':
             return <TissusPage />
         case 'notifications':

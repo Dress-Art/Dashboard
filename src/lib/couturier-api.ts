@@ -103,6 +103,8 @@ export async function createModel(input: {
 interface ListMeasurementsParams {
     search?: string
     limit?: number
+    /** Restreindre aux mesures d'un client précis (utile pour la fiche client). */
+    clientId?: string
 }
 
 export async function listMeasurements(params: ListMeasurementsParams = {}): Promise<{
@@ -118,10 +120,18 @@ export async function listMeasurements(params: ListMeasurementsParams = {}): Pro
     if (params.search?.trim()) {
         q = q.ilike('name', `%${params.search.trim()}%`)
     }
+    if (params.clientId) {
+        q = q.eq('client_id', params.clientId)
+    }
 
     const {data, count, error} = await q
     if (error) throw error
     return {measurements: (data ?? []) as MeasurementRow[], total: count ?? 0}
+}
+
+export async function deleteMeasurement(id: string): Promise<void> {
+    const {error} = await supabase.from('measurements').delete().eq('id', id)
+    if (error) throw error
 }
 
 export async function createMeasurement(input: {

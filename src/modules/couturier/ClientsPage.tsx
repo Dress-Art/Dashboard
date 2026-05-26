@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { ClientsTable } from './ClientsTable'
-import { PlusIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
-import { listClients, createClient, updateClient, deleteClient } from '@/lib/couturier-api'
+import { PlusIcon, ArrowDownTrayIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { listClients, createClient, updateClient, deleteClient, listMeasurements, createMeasurement, deleteMeasurement } from '@/lib/couturier-api'
 import { notify } from '@/lib/toast'
 
 type ClientStatus = 'active' | 'inactive' | 'suspended'
@@ -410,10 +410,73 @@ function ClientViewModal({client, onClose, onEdit}: ClientViewModalProps) {
     const formatFCFA = (n: number) => `${n.toLocaleString('fr-FR')} FCFA`
     const formatDate = (d?: string) =>
         d ? new Date(d).toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'}) : '—'
+
+    type MeasurementItem = {id: string; name: string; value: number; unit: string}
+    const [measurements, setMeasurements] = useState<MeasurementItem[]>([])
+    const [measurementsLoading, setMeasurementsLoading] = useState(true)
+    const [newName, setNewName] = useState('')
+    const [newValue, setNewValue] = useState<string>('')
+    const [newUnit, setNewUnit] = useState<'cm' | 'in'>('cm')
+    const [savingMeasurement, setSavingMeasurement] = useState(false)
+    const [deletingId, setDeletingId] = useState<string | null>(null)
+
+    const loadMeasurements = async () => {
+        setMeasurementsLoading(true)
+        try {
+            const result = await listMeasurements({clientId: client.id, limit: 500})
+            setMeasurements(result.measurements.map(m => ({id: m.id, name: m.name, value: m.value, unit: m.unit})))
+        } catch (err) {
+            console.error('Erreur chargement mesures du client:', err)
+        } finally {
+            setMeasurementsLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        void loadMeasurements()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [client.id])
+
+    const handleAddMeasurement = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!newName.trim() || !newValue || Number(newValue) <= 0) {
+            notify.error('Nom et valeur > 0 requis')
+            return
+        }
+        try {
+            setSavingMeasurement(true)
+            await createMeasurement({
+                client_id: client.id,
+                name: newName.trim(),
+                value: Number(newValue),
+                unit: newUnit,
+            })
+            setNewName('')
+            setNewValue('')
+            await loadMeasurements()
+        } catch (err) {
+            notify.error(err)
+        } finally {
+            setSavingMeasurement(false)
+        }
+    }
+
+    const handleDeleteMeasurement = async (id: string) => {
+        try {
+            setDeletingId(id)
+            await deleteMeasurement(id)
+            await loadMeasurements()
+        } catch (err) {
+            notify.error(err)
+        } finally {
+            setDeletingId(null)
+        }
+    }
+
     return (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
             <div
-                className="bg-white dark:bg-gray-950 rounded-2xl p-6 w-full max-w-lg border border-gray-200 dark:border-gray-800 shadow-2xl max-h-[90vh] overflow-y-auto"
+                className="bg-white dark:bg-gray-950 rounded-2xl p-6 w-full max-w-2xl border border-gray-200 dark:border-gray-800 shadow-2xl max-h-[90vh] overflow-y-auto"
                 onClick={e => e.stopPropagation()}
             >
                 <div className="flex justify-between items-start mb-6">
@@ -432,20 +495,103 @@ function ClientViewModal({client, onClose, onEdit}: ClientViewModalProps) {
                     </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                    <Field label="Email" value={client.email} />
-                    <Field label="Téléphone" value={client.phone} />
-                    <Field label="Adresse" value={client.address || '—'} className="col-span-2" />
-                    <Field label="Ville" value={client.city || '—'} />
-                    <Field label="Code postal" value={client.postal_code || '—'} />
-                    <Field label="Commandes" value={String(client.total_orders ?? 0)} />
-                    <Field label="Total dépensé" value={formatFCFA(client.total_spent ?? 0)} />
-                    <Field label="Inscription" value={formatDate(client.created_at)} />
-                    <Field label="Dernière commande" value={formatDate(client.last_order_at)} />
-                    {client.notes && <Field label="Notes" value={client.notes} className="col-span-2" />}
-                </div>
+                <section className="mb-6">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Fiche d&apos;identité</h3>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                        <Field label="Email" value={client.email} />
+                        <Field label="Téléphone" value={client.phone} />
+                        <Field label="Adresse" value={client.address || '—'} className="col-span-2" />
+                        <Field label="Ville" value={client.city || '—'} />
+                        <Field label="Code postal" value={client.postal_code || '—'} />
+                        <Field label="Commandes" value={String(client.total_orders ?? 0)} />
+                        <Field label="Total dépensé" value={formatFCFA(client.total_spent ?? 0)} />
+                        <Field label="Inscription" value={formatDate(client.created_at)} />
+                        <Field label="Dernière commande" value={formatDate(client.last_order_at)} />
+                        {client.notes && <Field label="Notes" value={client.notes} className="col-span-2" />}
+                    </div>
+                </section>
 
-                <div className="flex gap-3 mt-6">
+                <section className="mb-6">
+                    <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            Mesures du client
+                        </h3>
+                        {!measurementsLoading && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                                {measurements.length} enregistrée{measurements.length > 1 ? 's' : ''}
+                            </span>
+                        )}
+                    </div>
+
+                    {measurementsLoading ? (
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 text-xs text-gray-500 dark:text-gray-400">
+                            Chargement…
+                        </div>
+                    ) : measurements.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 p-4 text-center">
+                            <PencilSquareIcon className="mx-auto w-6 h-6 text-gray-400 dark:text-gray-600" />
+                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Aucune mesure pour ce client.</p>
+                        </div>
+                    ) : (
+                        <ul className="divide-y divide-gray-100 dark:divide-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+                            {measurements.map(m => (
+                                <li key={m.id} className="px-3 py-2 flex items-center justify-between text-sm">
+                                    <span className="text-gray-700 dark:text-gray-300">{m.name}</span>
+                                    <div className="flex items-center gap-3">
+                                        <span className="font-semibold text-black dark:text-white tabular-nums">
+                                            {m.value} {m.unit}
+                                        </span>
+                                        <button
+                                            onClick={() => void handleDeleteMeasurement(m.id)}
+                                            disabled={deletingId === m.id}
+                                            className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded disabled:opacity-50 transition-colors"
+                                            title="Supprimer"
+                                        >
+                                            <TrashIcon className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+
+                    <form onSubmit={handleAddMeasurement} className="mt-3 flex gap-2 flex-wrap items-center">
+                        <input
+                            type="text"
+                            placeholder="Ex: Tour de poitrine"
+                            value={newName}
+                            onChange={e => setNewName(e.target.value)}
+                            className="flex-1 min-w-[160px] px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-sm text-black dark:text-white"
+                        />
+                        <input
+                            type="number"
+                            placeholder="Valeur"
+                            value={newValue}
+                            min={0}
+                            step="0.1"
+                            onChange={e => setNewValue(e.target.value)}
+                            className="w-24 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-sm text-black dark:text-white"
+                        />
+                        <select
+                            value={newUnit}
+                            onChange={e => setNewUnit(e.target.value as 'cm' | 'in')}
+                            className="w-20 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-sm text-black dark:text-white"
+                        >
+                            <option value="cm">cm</option>
+                            <option value="in">in</option>
+                        </select>
+                        <button
+                            type="submit"
+                            disabled={savingMeasurement}
+                            className="inline-flex items-center gap-1 px-3 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50"
+                        >
+                            <PlusIcon className="w-3.5 h-3.5" />
+                            Ajouter
+                        </button>
+                    </form>
+                </section>
+
+                <div className="flex gap-3">
                     <button
                         onClick={onClose}
                         className="flex-1 py-2.5 border border-gray-300 dark:border-gray-700 text-black dark:text-white rounded-xl font-semibold text-sm hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
@@ -456,7 +602,7 @@ function ClientViewModal({client, onClose, onEdit}: ClientViewModalProps) {
                         onClick={onEdit}
                         className="flex-1 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl font-semibold text-sm hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
                     >
-                        Modifier
+                        Modifier la fiche
                     </button>
                 </div>
             </div>

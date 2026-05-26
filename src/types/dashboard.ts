@@ -7,6 +7,7 @@ export type DashboardKey =
     | 'orders'
     | 'delivery'
     | 'couturier'
+    | 'models'
     | 'tissus'
     | 'notifications'
     | 'emails'

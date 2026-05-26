@@ -16,6 +16,7 @@ interface UiState {
 
 const defaultModuleVisibility: Record<DashboardKey, boolean> = {
     couturier: true,
+    models: true,
     tissus: true,
     orders: true,
     delivery: true,
