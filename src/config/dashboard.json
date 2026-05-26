@@ -2,7 +2,7 @@
 	"modules": [
 		{"key": "couturier", "icon": "scissors", "visible": true, "order": 1, "category": "business", "roles": ["admin", "couturier", "agent"]},
 		{"key": "models", "icon": "swatch", "visible": true, "order": 2, "category": "business", "roles": ["admin", "couturier"]},
-		{"key": "tissus", "icon": "swatch", "visible": true, "order": 3, "category": "business", "roles": ["admin", "vendeur", "couturier"]},
+		{"key": "tissus", "icon": "swatch", "visible": true, "order": 3, "category": "business", "roles": ["admin", "vendeur"]},
 		{"key": "orders", "icon": "tag", "visible": true, "order": 3, "category": "business", "roles": ["admin", "couturier", "agent", "livreur"]},
 		{"key": "delivery", "icon": "truck", "visible": true, "order": 4, "category": "business", "roles": ["admin", "livreur"]},
 		{"key": "users", "icon": "users", "visible": true, "order": 5, "category": "admin", "roles": ["admin"]},

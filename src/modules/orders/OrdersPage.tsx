@@ -15,6 +15,7 @@ import {
     ORDER_STATUS_LABELS_FR,
     NEXT_STATUS,
     ALLOWED_TRANSITIONS_BY_ROLE,
+    PRODUCTION_STEPS,
     canCancelOrder,
 } from '@/types/order.types'
 
@@ -959,27 +960,49 @@ export function OrdersPage() {
                                 )}
 
                                 {(() => {
-                                    const next = NEXT_STATUS[selectedOrder.status]
                                     const allowed = role ? ALLOWED_TRANSITIONS_BY_ROLE[role] : undefined
-                                    const canAdvance = next && allowed?.has(next)
+                                    const next = NEXT_STATUS[selectedOrder.status]
+                                    // Étapes futures que ce rôle peut appliquer : tout ce qui est
+                                    // strictement après le statut courant ET dans son allowlist.
+                                    const currentIdx = PRODUCTION_STEPS.indexOf(selectedOrder.status)
+                                    const futureStatuses = currentIdx >= 0
+                                        ? PRODUCTION_STEPS.slice(currentIdx + 1).filter(s => allowed?.has(s))
+                                        : []
                                     const canCancel = canCancelOrder(role) && !isTerminal(selectedOrder.status)
-                                    if (!canAdvance && !canCancel) return null
+                                    if (futureStatuses.length === 0 && !canCancel) return null
                                     return (
-                                        <div className="flex gap-3">
-                                            {canAdvance && next && (
-                                                <button
-                                                    onClick={() => handleStatusChange(selectedOrder, next)}
-                                                    disabled={updatingId === selectedOrder.orderNumber}
-                                                    className="flex-1 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl font-semibold text-sm hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 transition-colors"
-                                                >
-                                                    {updatingId === selectedOrder.orderNumber ? '...' : NEXT_STATUS_LABEL[selectedOrder.status]}
-                                                </button>
+                                        <div className="space-y-3">
+                                            {futureStatuses.length > 0 && (
+                                                <div>
+                                                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+                                                        Faire avancer vers
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {futureStatuses.map(target => {
+                                                            const isPrimary = target === next
+                                                            return (
+                                                                <button
+                                                                    key={target}
+                                                                    onClick={() => handleStatusChange(selectedOrder, target)}
+                                                                    disabled={updatingId === selectedOrder.orderNumber}
+                                                                    className={`px-3 py-2 rounded-xl text-xs font-medium transition-colors disabled:opacity-50 ${
+                                                                        isPrimary
+                                                                            ? 'bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200'
+                                                                            : 'border border-gray-300 dark:border-gray-700 text-black dark:text-white hover:bg-gray-50 dark:hover:bg-neutral-900'
+                                                                    }`}
+                                                                >
+                                                                    {ORDER_STATUS_LABELS_FR[target]}
+                                                                </button>
+                                                            )
+                                                        })}
+                                                    </div>
+                                                </div>
                                             )}
                                             {canCancel && (
                                                 <button
                                                     onClick={() => handleStatusChange(selectedOrder, 'cancelled')}
                                                     disabled={updatingId === selectedOrder.orderNumber}
-                                                    className="px-4 py-2.5 border border-red-300 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-50 disabled:opacity-50 transition-colors"
+                                                    className="w-full px-4 py-2.5 border border-red-300 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-50 disabled:opacity-50 transition-colors"
                                                 >
                                                     Annuler
                                                 </button>
