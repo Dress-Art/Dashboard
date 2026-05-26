@@ -75,8 +75,12 @@ export const ALLOWED_TRANSITIONS_BY_ROLE: Record<string, ReadonlySet<OrderStatus
         'delivered',
         'cancelled',
     ]),
+    // Couturier = pilote du cycle production. Peut tout faire avancer SAUF
+    // marquer livré (rôle du livreur). 'paid' inclus pour les paiements
+    // directs cash/mobile money hors FedaPay.
     couturier: new Set<OrderStatus>([
         'paid',
+        'measurements_validated',
         'sewing',
         'finishing',
         'ready_for_delivery',
