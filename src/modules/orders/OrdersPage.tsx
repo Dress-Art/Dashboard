@@ -14,6 +14,8 @@ import {
     type OrderMeasurements,
     ORDER_STATUS_LABELS_FR,
     NEXT_STATUS,
+    ALLOWED_TRANSITIONS_BY_ROLE,
+    canCancelOrder,
 } from '@/types/order.types'
 
 interface Order {
@@ -293,15 +295,24 @@ function MeasurementsEditModal({initial, onClose, onSave, submitting}: Measureme
 interface OrderRowActionsProps {
     order: Order
     updatingId: string | null
+    role: string | null
     onChange: (order: Order, next: OrderStatus) => void
 }
 
-function OrderRowActions({order, updatingId, onChange}: OrderRowActionsProps) {
+function OrderRowActions({order, updatingId, role, onChange}: OrderRowActionsProps) {
     const next = NEXT_STATUS[order.status]
+    const allowed = role ? ALLOWED_TRANSITIONS_BY_ROLE[role] : undefined
+    const canAdvance = next && allowed?.has(next)
+    const canCancel = canCancelOrder(role) && !isTerminal(order.status)
     const busy = updatingId === order.orderNumber
+
+    if (!canAdvance && !canCancel) {
+        return <span className="text-xs text-gray-400">—</span>
+    }
+
     return (
         <div className="flex gap-2 flex-wrap">
-            {next && (
+            {canAdvance && next && (
                 <button
                     onClick={() => onChange(order, next)}
                     disabled={busy}
@@ -310,7 +321,7 @@ function OrderRowActions({order, updatingId, onChange}: OrderRowActionsProps) {
                     {busy ? '...' : NEXT_STATUS_LABEL[order.status]}
                 </button>
             )}
-            {!isTerminal(order.status) && (
+            {canCancel && (
                 <button
                     onClick={() => onChange(order, 'cancelled')}
                     disabled={busy}
@@ -698,6 +709,7 @@ export function OrdersPage() {
                                             <OrderRowActions
                                                 order={order}
                                                 updatingId={updatingId}
+                                                role={role}
                                                 onChange={handleStatusChange}
                                             />
                                         )}
@@ -946,24 +958,35 @@ export function OrdersPage() {
                                     </div>
                                 )}
 
-                                <div className="flex gap-3">
-                                {NEXT_STATUS[selectedOrder.status] && (
-                                    <button
-                                        onClick={() => handleStatusChange(selectedOrder, NEXT_STATUS[selectedOrder.status]!)}
-                                        disabled={updatingId === selectedOrder.orderNumber}
-                                        className="flex-1 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl font-semibold text-sm hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 transition-colors"
-                                    >
-                                        {updatingId === selectedOrder.orderNumber ? '...' : NEXT_STATUS_LABEL[selectedOrder.status]}
-                                    </button>
-                                )}
-                                <button
-                                    onClick={() => handleStatusChange(selectedOrder, 'cancelled')}
-                                    disabled={updatingId === selectedOrder.orderNumber}
-                                    className="px-4 py-2.5 border border-red-300 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-50 disabled:opacity-50 transition-colors"
-                                >
-                                    Annuler
-                                </button>
-                                </div>
+                                {(() => {
+                                    const next = NEXT_STATUS[selectedOrder.status]
+                                    const allowed = role ? ALLOWED_TRANSITIONS_BY_ROLE[role] : undefined
+                                    const canAdvance = next && allowed?.has(next)
+                                    const canCancel = canCancelOrder(role) && !isTerminal(selectedOrder.status)
+                                    if (!canAdvance && !canCancel) return null
+                                    return (
+                                        <div className="flex gap-3">
+                                            {canAdvance && next && (
+                                                <button
+                                                    onClick={() => handleStatusChange(selectedOrder, next)}
+                                                    disabled={updatingId === selectedOrder.orderNumber}
+                                                    className="flex-1 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl font-semibold text-sm hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                                                >
+                                                    {updatingId === selectedOrder.orderNumber ? '...' : NEXT_STATUS_LABEL[selectedOrder.status]}
+                                                </button>
+                                            )}
+                                            {canCancel && (
+                                                <button
+                                                    onClick={() => handleStatusChange(selectedOrder, 'cancelled')}
+                                                    disabled={updatingId === selectedOrder.orderNumber}
+                                                    className="px-4 py-2.5 border border-red-300 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-50 disabled:opacity-50 transition-colors"
+                                                >
+                                                    Annuler
+                                                </button>
+                                            )}
+                                        </div>
+                                    )
+                                })()}
                             </div>
                         )}
                     </div>

@@ -27,6 +27,16 @@ function pathFor(key: DashboardKey): string {
     return `/modules/${key}`
 }
 
+/**
+ * Override de label par rôle : un couturier ne se rend pas sur "Couturier",
+ * il gère ses clients/modèles/mesures — d'où le libellé "Mes clients".
+ * Retourne null si le libellé i18n par défaut suffit.
+ */
+function navLabelForRole(key: DashboardKey, role: Role | null): string | null {
+    if (role === 'couturier' && key === 'couturier') return 'Mes clients'
+    return null
+}
+
 export function Sidebar({isCollapsed, onToggle}: SidebarProps) {
     const pathname = usePathname()
     const {signOut, role} = useAuthContext()
@@ -86,16 +96,19 @@ export function Sidebar({isCollapsed, onToggle}: SidebarProps) {
                     active={isActive('/')}
                     collapsed={isCollapsed}
                 />
-                {navModules.map(m => (
-                    <SidebarLink
-                        key={m.key}
-                        href={pathFor(m.key as DashboardKey)}
-                        iconName={m.icon}
-                        label={t(m.key as DashboardKey)}
-                        active={isActive(pathFor(m.key as DashboardKey))}
-                        collapsed={isCollapsed}
-                    />
-                ))}
+                {navModules.map(m => {
+                    const override = navLabelForRole(m.key as DashboardKey, (role as Role | null) ?? null)
+                    return (
+                        <SidebarLink
+                            key={m.key}
+                            href={pathFor(m.key as DashboardKey)}
+                            iconName={m.icon}
+                            label={override ?? t(m.key as DashboardKey)}
+                            active={isActive(pathFor(m.key as DashboardKey))}
+                            collapsed={isCollapsed}
+                        />
+                    )
+                })}
             </nav>
 
             <div className='p-4 border-t border-gray-300 dark:border-gray-700 mt-auto flex-shrink-0 space-y-1'>

@@ -426,7 +426,7 @@ function CouturierWorkspace() {
     return (
         <div className="p-6 bg-gray-50 dark:bg-black min-h-screen">
             <div className="mb-6">
-                <h1 className="text-3xl font-bold text-black dark:text-white">Module Couturier</h1>
+                <h1 className="text-3xl font-bold text-black dark:text-white">Mes clients</h1>
                 <p className="text-gray-600 dark:text-gray-400">Gérez vos clients, modèles et mesures.</p>
             </div>
 

@@ -57,6 +57,48 @@ export const NEXT_STATUS: Record<OrderStatus, OrderStatus | null> = {
 }
 
 /**
+ * Statuts qu'un rôle est autorisé à *appliquer* via le bouton "étape suivante".
+ * - admin : tous les statuts.
+ * - couturier : transitions production (sewing → finishing → ready_for_delivery)
+ *   + 'paid' s'il encaisse en direct (cash / mobile money hors FedaPay).
+ * - agent : encaissement + validation mesures.
+ * - livreur : livraison finale.
+ * - vendeur : aucun.
+ */
+export const ALLOWED_TRANSITIONS_BY_ROLE: Record<string, ReadonlySet<OrderStatus>> = {
+    admin: new Set<OrderStatus>([
+        'paid',
+        'measurements_validated',
+        'sewing',
+        'finishing',
+        'ready_for_delivery',
+        'delivered',
+        'cancelled',
+    ]),
+    couturier: new Set<OrderStatus>([
+        'paid',
+        'sewing',
+        'finishing',
+        'ready_for_delivery',
+    ]),
+    agent: new Set<OrderStatus>([
+        'paid',
+        'measurements_validated',
+        'cancelled',
+    ]),
+    livreur: new Set<OrderStatus>([
+        'delivered',
+    ]),
+    vendeur: new Set<OrderStatus>(),
+    client: new Set<OrderStatus>(),
+}
+
+/** Vrai si le rôle peut annuler une commande. */
+export function canCancelOrder(role: string | null | undefined): boolean {
+    return role === 'admin' || role === 'agent' || role === 'couturier'
+}
+
+/**
  * Forme JSONB de `orders.measurements`. Champs libres (clé = nom de la mesure,
  * valeur = `{ value, unit }`) pour rester compatible avec les modèles variés.
  */
