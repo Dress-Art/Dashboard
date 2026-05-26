@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ClientsTable } from './ClientsTable'
 import { PlusIcon, ArrowDownTrayIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline'
-import { listClients, createClient, updateClient, deleteClient, listMeasurements, createMeasurement, deleteMeasurement } from '@/lib/couturier-api'
+import { listClients, createClient, updateClient, deleteClient, listMeasurements, deleteMeasurement, saveClientMeasurements, STANDARD_MEASUREMENTS } from '@/lib/couturier-api'
 import { notify } from '@/lib/toast'
 
 type ClientStatus = 'active' | 'inactive' | 'suspended'
@@ -412,19 +412,44 @@ function ClientViewModal({client, onClose, onEdit}: ClientViewModalProps) {
         d ? new Date(d).toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'}) : '—'
 
     type MeasurementItem = {id: string; name: string; value: number; unit: string}
-    const [measurements, setMeasurements] = useState<MeasurementItem[]>([])
+    type DraftItem = {name: string; value: string; unit: 'cm' | 'in'}
+
+    const [storedMeasurements, setStoredMeasurements] = useState<MeasurementItem[]>([])
     const [measurementsLoading, setMeasurementsLoading] = useState(true)
-    const [newName, setNewName] = useState('')
-    const [newValue, setNewValue] = useState<string>('')
-    const [newUnit, setNewUnit] = useState<'cm' | 'in'>('cm')
-    const [savingMeasurement, setSavingMeasurement] = useState(false)
+    const [standardDraft, setStandardDraft] = useState<DraftItem[]>(
+        STANDARD_MEASUREMENTS.map(name => ({name, value: '', unit: 'cm'})),
+    )
+    const [customDraft, setCustomDraft] = useState<Array<{id?: string; name: string; value: string; unit: 'cm' | 'in'}>>([])
+    const [savingMeasurements, setSavingMeasurements] = useState(false)
     const [deletingId, setDeletingId] = useState<string | null>(null)
 
     const loadMeasurements = async () => {
         setMeasurementsLoading(true)
         try {
-            const result = await listMeasurements({clientId: client.id, limit: 500})
-            setMeasurements(result.measurements.map(m => ({id: m.id, name: m.name, value: m.value, unit: m.unit})))
+            const result = await listMeasurements({clientId: client.id, limit: 1000})
+            const items = result.measurements.map(m => ({
+                id: m.id,
+                name: m.name,
+                value: m.value,
+                unit: m.unit,
+            }))
+            setStoredMeasurements(items)
+            const byName = new Map(items.map(i => [i.name, i]))
+            setStandardDraft(STANDARD_MEASUREMENTS.map(name => {
+                const existing = byName.get(name)
+                return {
+                    name,
+                    value: existing ? String(existing.value) : '',
+                    unit: (existing?.unit as 'cm' | 'in') ?? 'cm',
+                }
+            }))
+            // Mesures hors template = mesures personnalisées ajoutées par le couturier.
+            const standardSet = new Set<string>(STANDARD_MEASUREMENTS)
+            setCustomDraft(
+                items
+                    .filter(i => !standardSet.has(i.name))
+                    .map(i => ({id: i.id, name: i.name, value: String(i.value), unit: i.unit as 'cm' | 'in'})),
+            )
         } catch (err) {
             console.error('Erreur chargement mesures du client:', err)
         } finally {
@@ -437,27 +462,46 @@ function ClientViewModal({client, onClose, onEdit}: ClientViewModalProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [client.id])
 
-    const handleAddMeasurement = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!newName.trim() || !newValue || Number(newValue) <= 0) {
-            notify.error('Nom et valeur > 0 requis')
-            return
-        }
+    const updateStandard = (idx: number, patch: Partial<DraftItem>) => {
+        setStandardDraft(prev => prev.map((item, i) => (i === idx ? {...item, ...patch} : item)))
+    }
+
+    const updateCustom = (idx: number, patch: Partial<{name: string; value: string; unit: 'cm' | 'in'}>) => {
+        setCustomDraft(prev => prev.map((item, i) => (i === idx ? {...item, ...patch} : item)))
+    }
+
+    const addCustomLine = () => {
+        setCustomDraft(prev => [...prev, {name: '', value: '', unit: 'cm'}])
+    }
+
+    const removeCustomLine = (idx: number) => {
+        setCustomDraft(prev => prev.filter((_, i) => i !== idx))
+    }
+
+    const handleSaveMeasurements = async () => {
         try {
-            setSavingMeasurement(true)
-            await createMeasurement({
-                client_id: client.id,
-                name: newName.trim(),
-                value: Number(newValue),
-                unit: newUnit,
-            })
-            setNewName('')
-            setNewValue('')
+            setSavingMeasurements(true)
+            const items = [
+                ...standardDraft.map(d => ({
+                    name: d.name,
+                    value: d.value === '' ? 0 : Number(d.value),
+                    unit: d.unit,
+                })),
+                ...customDraft
+                    .filter(d => d.name.trim() !== '')
+                    .map(d => ({
+                        name: d.name.trim(),
+                        value: d.value === '' ? 0 : Number(d.value),
+                        unit: d.unit,
+                    })),
+            ]
+            await saveClientMeasurements(client.id, items)
+            notify.success('Mesures enregistrées')
             await loadMeasurements()
         } catch (err) {
             notify.error(err)
         } finally {
-            setSavingMeasurement(false)
+            setSavingMeasurements(false)
         }
     }
 
@@ -472,6 +516,8 @@ function ClientViewModal({client, onClose, onEdit}: ClientViewModalProps) {
             setDeletingId(null)
         }
     }
+
+    const filledStandardCount = standardDraft.filter(d => d.value !== '' && Number(d.value) > 0).length
 
     return (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -518,7 +564,9 @@ function ClientViewModal({client, onClose, onEdit}: ClientViewModalProps) {
                         </h3>
                         {!measurementsLoading && (
                             <span className="text-xs text-gray-500 dark:text-gray-400">
-                                {measurements.length} enregistrée{measurements.length > 1 ? 's' : ''}
+                                {filledStandardCount}/{STANDARD_MEASUREMENTS.length} remplies
+                                {storedMeasurements.length > STANDARD_MEASUREMENTS.length &&
+                                    ` · ${storedMeasurements.length - filledStandardCount} personnalisées`}
                             </span>
                         )}
                     </div>
@@ -527,68 +575,121 @@ function ClientViewModal({client, onClose, onEdit}: ClientViewModalProps) {
                         <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 text-xs text-gray-500 dark:text-gray-400">
                             Chargement…
                         </div>
-                    ) : measurements.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 p-4 text-center">
-                            <PencilSquareIcon className="mx-auto w-6 h-6 text-gray-400 dark:text-gray-600" />
-                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Aucune mesure pour ce client.</p>
-                        </div>
                     ) : (
-                        <ul className="divide-y divide-gray-100 dark:divide-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-                            {measurements.map(m => (
-                                <li key={m.id} className="px-3 py-2 flex items-center justify-between text-sm">
-                                    <span className="text-gray-700 dark:text-gray-300">{m.name}</span>
-                                    <div className="flex items-center gap-3">
-                                        <span className="font-semibold text-black dark:text-white tabular-nums">
-                                            {m.value} {m.unit}
-                                        </span>
-                                        <button
-                                            onClick={() => void handleDeleteMeasurement(m.id)}
-                                            disabled={deletingId === m.id}
-                                            className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded disabled:opacity-50 transition-colors"
-                                            title="Supprimer"
+                        <>
+                            <div className="rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+                                {standardDraft.map((item, idx) => (
+                                    <div
+                                        key={item.name}
+                                        className="px-3 py-2 flex items-center gap-3 text-sm border-b border-gray-100 dark:border-gray-900 last:border-b-0"
+                                    >
+                                        <label className="flex-1 text-gray-700 dark:text-gray-300" htmlFor={`std-${idx}`}>
+                                            {item.name}
+                                        </label>
+                                        <input
+                                            id={`std-${idx}`}
+                                            type="number"
+                                            min={0}
+                                            step="0.1"
+                                            inputMode="decimal"
+                                            placeholder="—"
+                                            value={item.value}
+                                            onChange={e => updateStandard(idx, {value: e.target.value})}
+                                            className="w-24 px-2 py-1 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-right text-sm text-black dark:text-white tabular-nums"
+                                        />
+                                        <select
+                                            value={item.unit}
+                                            onChange={e => updateStandard(idx, {unit: e.target.value as 'cm' | 'in'})}
+                                            className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-sm text-black dark:text-white"
+                                            aria-label={`Unité ${item.name}`}
                                         >
-                                            <TrashIcon className="w-3.5 h-3.5" />
-                                        </button>
+                                            <option value="cm">cm</option>
+                                            <option value="in">in</option>
+                                        </select>
                                     </div>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
+                                ))}
+                            </div>
 
-                    <form onSubmit={handleAddMeasurement} className="mt-3 flex gap-2 flex-wrap items-center">
-                        <input
-                            type="text"
-                            placeholder="Ex: Tour de poitrine"
-                            value={newName}
-                            onChange={e => setNewName(e.target.value)}
-                            className="flex-1 min-w-[160px] px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-sm text-black dark:text-white"
-                        />
-                        <input
-                            type="number"
-                            placeholder="Valeur"
-                            value={newValue}
-                            min={0}
-                            step="0.1"
-                            onChange={e => setNewValue(e.target.value)}
-                            className="w-24 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-sm text-black dark:text-white"
-                        />
-                        <select
-                            value={newUnit}
-                            onChange={e => setNewUnit(e.target.value as 'cm' | 'in')}
-                            className="w-20 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-sm text-black dark:text-white"
-                        >
-                            <option value="cm">cm</option>
-                            <option value="in">in</option>
-                        </select>
-                        <button
-                            type="submit"
-                            disabled={savingMeasurement}
-                            className="inline-flex items-center gap-1 px-3 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50"
-                        >
-                            <PlusIcon className="w-3.5 h-3.5" />
-                            Ajouter
-                        </button>
-                    </form>
+                            {customDraft.length > 0 && (
+                                <div className="mt-3 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+                                    <p className="px-3 py-2 text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-900 bg-gray-50 dark:bg-neutral-900/40">
+                                        Mesures personnalisées
+                                    </p>
+                                    {customDraft.map((item, idx) => (
+                                        <div
+                                            key={item.id ?? `custom-${idx}`}
+                                            className="px-3 py-2 flex items-center gap-2 text-sm border-b border-gray-100 dark:border-gray-900 last:border-b-0"
+                                        >
+                                            <input
+                                                type="text"
+                                                placeholder="Nom de la mesure"
+                                                value={item.name}
+                                                onChange={e => updateCustom(idx, {name: e.target.value})}
+                                                className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-sm text-black dark:text-white"
+                                            />
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                step="0.1"
+                                                placeholder="—"
+                                                value={item.value}
+                                                onChange={e => updateCustom(idx, {value: e.target.value})}
+                                                className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-right text-sm text-black dark:text-white tabular-nums"
+                                            />
+                                            <select
+                                                value={item.unit}
+                                                onChange={e => updateCustom(idx, {unit: e.target.value as 'cm' | 'in'})}
+                                                className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-sm text-black dark:text-white"
+                                            >
+                                                <option value="cm">cm</option>
+                                                <option value="in">in</option>
+                                            </select>
+                                            {item.id ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => void handleDeleteMeasurement(item.id!)}
+                                                    disabled={deletingId === item.id}
+                                                    className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded disabled:opacity-50 transition-colors"
+                                                    title="Supprimer cette mesure"
+                                                >
+                                                    <TrashIcon className="w-3.5 h-3.5" />
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeCustomLine(idx)}
+                                                    className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded transition-colors"
+                                                    title="Retirer cette ligne"
+                                                >
+                                                    <TrashIcon className="w-3.5 h-3.5" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                <button
+                                    type="button"
+                                    onClick={addCustomLine}
+                                    className="inline-flex items-center gap-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-xs font-medium text-black dark:text-white hover:bg-gray-50 dark:hover:bg-neutral-900 transition-colors"
+                                >
+                                    <PlusIcon className="w-3.5 h-3.5" />
+                                    Ajouter une mesure personnalisée
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => void handleSaveMeasurements()}
+                                    disabled={savingMeasurements}
+                                    className="inline-flex items-center gap-1 px-3 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg text-xs font-medium hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                                >
+                                    <PencilSquareIcon className="w-3.5 h-3.5" />
+                                    {savingMeasurements ? 'Enregistrement…' : 'Enregistrer les mesures'}
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </section>
 
                 <div className="flex gap-3">

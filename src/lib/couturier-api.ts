@@ -134,6 +134,72 @@ export async function deleteMeasurement(id: string): Promise<void> {
     if (error) throw error
 }
 
+/**
+ * Liste standard utilisée comme template par la fiche client. L'ordre est
+ * volontaire (du bas du corps vers le haut) pour faciliter la prise de
+ * mesures dans cet ordre.
+ */
+export const STANDARD_MEASUREMENTS: ReadonlyArray<string> = [
+    'Longueur pantalon',
+    'Ceinture',
+    'Fesse',
+    'Cuisse',
+    'Bas',
+    'Longueur genou',
+    'Tour genou',
+    'Longueur haut',
+    'Dos',
+    'Cou',
+    'Longueur Manche',
+    'Tour de bras',
+    'Poitrine',
+    'Ventre',
+]
+
+interface SaveMeasurementItem {
+    name: string
+    value: number
+    unit: string
+}
+
+/**
+ * Réconcilie la fiche de mesures d'un client : on insère les nouvelles, on
+ * met à jour celles dont la valeur a changé, on supprime celles dont la valeur
+ * a été vidée. Les mesures personnalisées hors STANDARD restent inchangées si
+ * elles ne sont pas dans la liste passée.
+ */
+export async function saveClientMeasurements(
+    clientId: string,
+    items: SaveMeasurementItem[],
+): Promise<void> {
+    const {measurements: existing} = await listMeasurements({clientId, limit: 1000})
+    const byName = new Map<string, MeasurementRow>()
+    for (const m of existing) byName.set(m.name, m)
+
+    for (const item of items) {
+        const existingRow = byName.get(item.name)
+        if (item.value > 0) {
+            if (!existingRow) {
+                await createMeasurement({
+                    client_id: clientId,
+                    name: item.name,
+                    value: item.value,
+                    unit: item.unit,
+                })
+            } else if (existingRow.value !== item.value || existingRow.unit !== item.unit) {
+                const {error} = await supabase
+                    .from('measurements')
+                    .update({value: item.value, unit: item.unit})
+                    .eq('id', existingRow.id)
+                if (error) throw error
+            }
+        } else if (existingRow) {
+            // Valeur vidée → suppression de la ligne existante.
+            await deleteMeasurement(existingRow.id)
+        }
+    }
+}
+
 export async function createMeasurement(input: {
     client_id: string
     name: string
