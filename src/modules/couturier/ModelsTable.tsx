@@ -33,8 +33,9 @@ export function ModelsTable({
         return new Date(date).toLocaleDateString('fr-FR', { year: 'numeric', month: 'short', day: 'numeric' })
     }
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount)
+    const formatCurrency = (amount: number | null | undefined): string => {
+        const value = typeof amount === 'number' && !Number.isNaN(amount) ? amount : 0
+        return `${value.toLocaleString('fr-FR')} FCFA`
     }
 
     if (models.length === 0) {

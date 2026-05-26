@@ -54,7 +54,25 @@ export async function listModels(params: ListModelsParams = {}): Promise<{
 
     const {data, count, error} = await q
     if (error) throw error
-    return {models: (data ?? []) as ModelRow[], total: count ?? 0}
+
+    // La table prod peut nommer la colonne `prix` (FR) au lieu de `price` (EN) ;
+    // on tolère les deux et on convertit en number sûr.
+    const models = (data ?? []).map((row: Record<string, unknown>) => {
+        const rawPrice = row.price ?? row.prix
+        const price = typeof rawPrice === 'number' && !Number.isNaN(rawPrice)
+            ? rawPrice
+            : Number(rawPrice ?? 0) || 0
+        return {
+            id: row.id as string,
+            professional_id: (row.professional_id as string | null) ?? null,
+            name: (row.name as string) ?? '',
+            description: (row.description as string | null) ?? null,
+            price,
+            created_at: (row.created_at as string) ?? new Date().toISOString(),
+        } as ModelRow
+    })
+
+    return {models, total: count ?? 0}
 }
 
 export async function createModel(input: {
@@ -65,12 +83,14 @@ export async function createModel(input: {
     const {data: {user}} = await supabase.auth.getUser()
     if (!user) throw new Error('Non authentifié')
 
+    // Table prod nomme la colonne en français (`prix`). On envoie sous ce nom ;
+    // la lecture côté listModels normalise vers `price` pour le reste du code.
     const {data, error} = await supabase
         .from('modeles')
         .insert({
             name: input.name,
             description: input.description ?? null,
-            price: input.price,
+            prix: input.price,
             professional_id: user.id,
         })
         .select()
