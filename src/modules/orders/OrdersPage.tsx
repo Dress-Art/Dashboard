@@ -462,9 +462,11 @@ export function OrdersPage() {
     useEffect(() => { load() }, [load])
 
     const handleStatusChange = async (order: Order, newStatus: OrderStatus) => {
+        console.log('[orders] PATCH status', {orderNumber: order.orderNumber, from: order.status, to: newStatus})
         setUpdatingId(order.orderNumber)
         try {
-            await adminAPI.updateOrderStatus(order.orderNumber, newStatus)
+            const result = await adminAPI.updateOrderStatus(order.orderNumber, newStatus)
+            console.log('[orders] PATCH success', result)
             notify.success(
                 `Commande ${order.orderNumber}`,
                 `→ ${ORDER_STATUS_LABELS_FR[newStatus]}`,
@@ -474,6 +476,7 @@ export function OrdersPage() {
                 setSelectedOrder(prev => prev ? { ...prev, status: newStatus } : null)
             }
         } catch (err) {
+            console.error('[orders] PATCH failed', err)
             notify.error(err)
         } finally {
             setUpdatingId(null)
