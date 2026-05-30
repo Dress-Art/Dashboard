@@ -56,6 +56,16 @@ export async function getCouturierHomeStatsAction(): Promise<
     const horizon7 = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
     const nowIso = new Date().toISOString()
 
+    // `modeles.professional_id` est FK vers `professional_profiles.id`, pas
+    // vers `auth.users.id` — il faut donc résoudre l'id du profil pro avant
+    // de compter les modèles.
+    const {data: profileRow} = await supabase
+        .from('professional_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+    const professionalProfileId = (profileRow?.id as string | undefined) ?? null
+
     const [
         ordersOwn,
         ordersRecent,
@@ -72,10 +82,12 @@ export async function getCouturierHomeStatsAction(): Promise<
             .select('total_amount, status')
             .eq('professional_id', user.id)
             .gte('created_at', since30),
-        supabase
-            .from('modeles')
-            .select('id', {count: 'exact', head: true})
-            .eq('professional_id', user.id),
+        professionalProfileId
+            ? supabase
+                  .from('modeles')
+                  .select('id', {count: 'exact', head: true})
+                  .eq('professional_id', professionalProfileId)
+            : Promise.resolve({count: 0, error: null, data: null}),
         supabase
             .from('orders')
             .select('id', {count: 'exact', head: true})

@@ -3,13 +3,16 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ClientsTable } from './ClientsTable'
 import { PlusIcon, ArrowDownTrayIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline'
-import { listClients, createClient, updateClient, deleteClient, listMeasurements, deleteMeasurement, saveClientMeasurements, STANDARD_MEASUREMENTS } from '@/lib/couturier-api'
+import { listClients, createClient, updateClient, deleteClient, getMeasurementsByUserId, upsertMeasurementsByUserId, STANDARD_MEASUREMENTS } from '@/lib/couturier-api'
 import { notify } from '@/lib/toast'
 
 type ClientStatus = 'active' | 'inactive' | 'suspended'
 
 interface ClientEntity {
     id: string
+    /** auth.users.id du client si compte marketplace ; sinon null. C'est la clé
+     *  pour accéder à `measurements` (UNIQUE sur user_id). */
+    user_id: string | null
     name: string
     email: string
     phone: string
@@ -69,6 +72,7 @@ export function ClientsPage() {
             const result = await listClients({search: q.trim()})
             const items = result.clients.map(c => ({
                 id: c.id,
+                user_id: c.user_id ?? null,
                 name: c.name,
                 email: c.email ?? '',
                 phone: c.phone ?? '',
@@ -411,47 +415,52 @@ function ClientViewModal({client, onClose, onEdit}: ClientViewModalProps) {
     const formatDate = (d?: string) =>
         d ? new Date(d).toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'}) : '—'
 
-    type MeasurementItem = {id: string; name: string; value: number; unit: string}
-    type DraftItem = {name: string; value: string; unit: 'cm' | 'in'}
+    /**
+     * Modèle de saisie : 14 colonnes standard + extra_fields jsonb pour le custom.
+     * Une seule unit (cm | in) sur la ligne measurements en DB.
+     */
+    type CustomDraft = {name: string; value: string}
 
-    const [storedMeasurements, setStoredMeasurements] = useState<MeasurementItem[]>([])
     const [measurementsLoading, setMeasurementsLoading] = useState(true)
-    const [standardDraft, setStandardDraft] = useState<DraftItem[]>(
-        STANDARD_MEASUREMENTS.map(name => ({name, value: '', unit: 'cm'})),
+    const [unit, setUnit] = useState<'cm' | 'in'>('cm')
+    const [stdValues, setStdValues] = useState<Record<string, string>>(
+        Object.fromEntries(STANDARD_MEASUREMENTS.map(s => [s.column, ''])),
     )
-    const [customDraft, setCustomDraft] = useState<Array<{id?: string; name: string; value: string; unit: 'cm' | 'in'}>>([])
+    const [extraDraft, setExtraDraft] = useState<CustomDraft[]>([])
     const [savingMeasurements, setSavingMeasurements] = useState(false)
-    const [deletingId, setDeletingId] = useState<string | null>(null)
 
     const loadMeasurements = async () => {
+        if (!client.user_id) {
+            setMeasurementsLoading(false)
+            return
+        }
         setMeasurementsLoading(true)
         try {
-            const result = await listMeasurements({clientId: client.id, limit: 1000})
-            const items = result.measurements.map(m => ({
-                id: m.id,
-                name: m.name,
-                value: m.value,
-                unit: m.unit,
-            }))
-            setStoredMeasurements(items)
-            const byName = new Map(items.map(i => [i.name, i]))
-            setStandardDraft(STANDARD_MEASUREMENTS.map(name => {
-                const existing = byName.get(name)
-                return {
-                    name,
-                    value: existing ? String(existing.value) : '',
-                    unit: (existing?.unit as 'cm' | 'in') ?? 'cm',
-                }
-            }))
-            // Mesures hors template = mesures personnalisées ajoutées par le couturier.
-            const standardSet = new Set<string>(STANDARD_MEASUREMENTS)
-            setCustomDraft(
-                items
-                    .filter(i => !standardSet.has(i.name))
-                    .map(i => ({id: i.id, name: i.name, value: String(i.value), unit: i.unit as 'cm' | 'in'})),
-            )
+            const record = await getMeasurementsByUserId(client.user_id)
+            if (record) {
+                setUnit(record.unit)
+                setStdValues(
+                    Object.fromEntries(
+                        STANDARD_MEASUREMENTS.map(s => [
+                            s.column,
+                            record.values[s.column] == null ? '' : String(record.values[s.column]),
+                        ]),
+                    ),
+                )
+                setExtraDraft(
+                    Object.entries(record.extra_fields).map(([name, value]) => ({
+                        name,
+                        value: String(value),
+                    })),
+                )
+            } else {
+                setUnit('cm')
+                setStdValues(Object.fromEntries(STANDARD_MEASUREMENTS.map(s => [s.column, ''])))
+                setExtraDraft([])
+            }
         } catch (err) {
             console.error('Erreur chargement mesures du client:', err)
+            notify.error(err)
         } finally {
             setMeasurementsLoading(false)
         }
@@ -460,42 +469,43 @@ function ClientViewModal({client, onClose, onEdit}: ClientViewModalProps) {
     useEffect(() => {
         void loadMeasurements()
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [client.id])
+    }, [client.user_id])
 
-    const updateStandard = (idx: number, patch: Partial<DraftItem>) => {
-        setStandardDraft(prev => prev.map((item, i) => (i === idx ? {...item, ...patch} : item)))
+    const updateStd = (column: string, value: string) => {
+        setStdValues(prev => ({...prev, [column]: value}))
     }
 
-    const updateCustom = (idx: number, patch: Partial<{name: string; value: string; unit: 'cm' | 'in'}>) => {
-        setCustomDraft(prev => prev.map((item, i) => (i === idx ? {...item, ...patch} : item)))
+    const updateExtra = (idx: number, patch: Partial<CustomDraft>) => {
+        setExtraDraft(prev => prev.map((item, i) => (i === idx ? {...item, ...patch} : item)))
     }
 
-    const addCustomLine = () => {
-        setCustomDraft(prev => [...prev, {name: '', value: '', unit: 'cm'}])
-    }
-
-    const removeCustomLine = (idx: number) => {
-        setCustomDraft(prev => prev.filter((_, i) => i !== idx))
-    }
+    const addExtraLine = () => setExtraDraft(prev => [...prev, {name: '', value: ''}])
+    const removeExtraLine = (idx: number) => setExtraDraft(prev => prev.filter((_, i) => i !== idx))
 
     const handleSaveMeasurements = async () => {
+        if (!client.user_id) {
+            notify.error('Ce client n\'a pas de compte associé (user_id manquant).')
+            return
+        }
         try {
             setSavingMeasurements(true)
-            const items = [
-                ...standardDraft.map(d => ({
-                    name: d.name,
-                    value: d.value === '' ? 0 : Number(d.value),
-                    unit: d.unit,
-                })),
-                ...customDraft
-                    .filter(d => d.name.trim() !== '')
-                    .map(d => ({
-                        name: d.name.trim(),
-                        value: d.value === '' ? 0 : Number(d.value),
-                        unit: d.unit,
-                    })),
-            ]
-            await saveClientMeasurements(client.id, items)
+            const values: Record<string, number | null> = {}
+            for (const s of STANDARD_MEASUREMENTS) {
+                const raw = stdValues[s.column]
+                values[s.column] = raw === '' || raw == null ? null : Number(raw)
+            }
+            const extra_fields: Record<string, number> = {}
+            for (const e of extraDraft) {
+                const key = e.name.trim()
+                if (!key) continue
+                const v = Number(e.value)
+                if (!Number.isNaN(v) && v > 0) extra_fields[key] = v
+            }
+            await upsertMeasurementsByUserId(client.user_id, {
+                unit,
+                values,
+                extra_fields,
+            })
             notify.success('Mesures enregistrées')
             await loadMeasurements()
         } catch (err) {
@@ -505,19 +515,7 @@ function ClientViewModal({client, onClose, onEdit}: ClientViewModalProps) {
         }
     }
 
-    const handleDeleteMeasurement = async (id: string) => {
-        try {
-            setDeletingId(id)
-            await deleteMeasurement(id)
-            await loadMeasurements()
-        } catch (err) {
-            notify.error(err)
-        } finally {
-            setDeletingId(null)
-        }
-    }
-
-    const filledStandardCount = standardDraft.filter(d => d.value !== '' && Number(d.value) > 0).length
+    const filledStandardCount = Object.values(stdValues).filter(v => v !== '' && Number(v) > 0).length
 
     return (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -558,33 +556,49 @@ function ClientViewModal({client, onClose, onEdit}: ClientViewModalProps) {
                 </section>
 
                 <section className="mb-6">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
                         <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                             Mesures du client
                         </h3>
-                        {!measurementsLoading && (
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                                {filledStandardCount}/{STANDARD_MEASUREMENTS.length} remplies
-                                {storedMeasurements.length > STANDARD_MEASUREMENTS.length &&
-                                    ` · ${storedMeasurements.length - filledStandardCount} personnalisées`}
-                            </span>
+                        {!measurementsLoading && client.user_id && (
+                            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                                <span>
+                                    {filledStandardCount}/{STANDARD_MEASUREMENTS.length} remplies
+                                    {extraDraft.length > 0 && ` · ${extraDraft.length} personnalisées`}
+                                </span>
+                                <select
+                                    value={unit}
+                                    onChange={e => setUnit(e.target.value as 'cm' | 'in')}
+                                    className="px-2 py-1 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-xs text-black dark:text-white"
+                                    aria-label="Unité de mesure"
+                                >
+                                    <option value="cm">cm</option>
+                                    <option value="in">in</option>
+                                </select>
+                            </div>
                         )}
                     </div>
 
-                    {measurementsLoading ? (
+                    {!client.user_id ? (
+                        <div className="rounded-xl border border-dashed border-amber-300 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-950/20 p-4 text-xs text-amber-800 dark:text-amber-300">
+                            Pour enregistrer des mesures, ce client doit être lié à un compte
+                            (champ <code className="font-mono">user_id</code>). Édite la fiche
+                            pour l&apos;associer à un utilisateur.
+                        </div>
+                    ) : measurementsLoading ? (
                         <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 text-xs text-gray-500 dark:text-gray-400">
                             Chargement…
                         </div>
                     ) : (
                         <>
                             <div className="rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-                                {standardDraft.map((item, idx) => (
+                                {STANDARD_MEASUREMENTS.map((s, idx) => (
                                     <div
-                                        key={item.name}
+                                        key={s.column}
                                         className="px-3 py-2 flex items-center gap-3 text-sm border-b border-gray-100 dark:border-gray-900 last:border-b-0"
                                     >
                                         <label className="flex-1 text-gray-700 dark:text-gray-300" htmlFor={`std-${idx}`}>
-                                            {item.name}
+                                            {s.label}
                                         </label>
                                         <input
                                             id={`std-${idx}`}
@@ -593,38 +607,30 @@ function ClientViewModal({client, onClose, onEdit}: ClientViewModalProps) {
                                             step="0.1"
                                             inputMode="decimal"
                                             placeholder="—"
-                                            value={item.value}
-                                            onChange={e => updateStandard(idx, {value: e.target.value})}
+                                            value={stdValues[s.column] ?? ''}
+                                            onChange={e => updateStd(s.column, e.target.value)}
                                             className="w-24 px-2 py-1 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-right text-sm text-black dark:text-white tabular-nums"
                                         />
-                                        <select
-                                            value={item.unit}
-                                            onChange={e => updateStandard(idx, {unit: e.target.value as 'cm' | 'in'})}
-                                            className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-sm text-black dark:text-white"
-                                            aria-label={`Unité ${item.name}`}
-                                        >
-                                            <option value="cm">cm</option>
-                                            <option value="in">in</option>
-                                        </select>
+                                        <span className="w-8 text-xs text-gray-400 text-right">{unit}</span>
                                     </div>
                                 ))}
                             </div>
 
-                            {customDraft.length > 0 && (
+                            {extraDraft.length > 0 && (
                                 <div className="mt-3 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
                                     <p className="px-3 py-2 text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-900 bg-gray-50 dark:bg-neutral-900/40">
                                         Mesures personnalisées
                                     </p>
-                                    {customDraft.map((item, idx) => (
+                                    {extraDraft.map((item, idx) => (
                                         <div
-                                            key={item.id ?? `custom-${idx}`}
+                                            key={`custom-${idx}`}
                                             className="px-3 py-2 flex items-center gap-2 text-sm border-b border-gray-100 dark:border-gray-900 last:border-b-0"
                                         >
                                             <input
                                                 type="text"
                                                 placeholder="Nom de la mesure"
                                                 value={item.name}
-                                                onChange={e => updateCustom(idx, {name: e.target.value})}
+                                                onChange={e => updateExtra(idx, {name: e.target.value})}
                                                 className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-sm text-black dark:text-white"
                                             />
                                             <input
@@ -633,37 +639,18 @@ function ClientViewModal({client, onClose, onEdit}: ClientViewModalProps) {
                                                 step="0.1"
                                                 placeholder="—"
                                                 value={item.value}
-                                                onChange={e => updateCustom(idx, {value: e.target.value})}
+                                                onChange={e => updateExtra(idx, {value: e.target.value})}
                                                 className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-right text-sm text-black dark:text-white tabular-nums"
                                             />
-                                            <select
-                                                value={item.unit}
-                                                onChange={e => updateCustom(idx, {unit: e.target.value as 'cm' | 'in'})}
-                                                className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-black text-sm text-black dark:text-white"
+                                            <span className="w-8 text-xs text-gray-400 text-right">{unit}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeExtraLine(idx)}
+                                                className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
+                                                title="Retirer cette ligne"
                                             >
-                                                <option value="cm">cm</option>
-                                                <option value="in">in</option>
-                                            </select>
-                                            {item.id ? (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => void handleDeleteMeasurement(item.id!)}
-                                                    disabled={deletingId === item.id}
-                                                    className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded disabled:opacity-50 transition-colors"
-                                                    title="Supprimer cette mesure"
-                                                >
-                                                    <TrashIcon className="w-3.5 h-3.5" />
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeCustomLine(idx)}
-                                                    className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded transition-colors"
-                                                    title="Retirer cette ligne"
-                                                >
-                                                    <TrashIcon className="w-3.5 h-3.5" />
-                                                </button>
-                                            )}
+                                                <TrashIcon className="w-3.5 h-3.5" />
+                                            </button>
                                         </div>
                                     ))}
                                 </div>
@@ -672,7 +659,7 @@ function ClientViewModal({client, onClose, onEdit}: ClientViewModalProps) {
                             <div className="mt-3 flex flex-wrap gap-2">
                                 <button
                                     type="button"
-                                    onClick={addCustomLine}
+                                    onClick={addExtraLine}
                                     className="inline-flex items-center gap-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-xs font-medium text-black dark:text-white hover:bg-gray-50 dark:hover:bg-neutral-900 transition-colors"
                                 >
                                     <PlusIcon className="w-3.5 h-3.5" />

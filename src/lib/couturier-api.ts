@@ -2,17 +2,48 @@ import {supabase} from './supabase'
 
 /**
  * Client couturier — appels directs Supabase JS (RLS opérationnelle).
- * Remplace `coutureAPI.listModels / createModel / listMeasurements / createMeasurement`
- * qui pointaient sur des Edge Functions cassées (cf. CORS + table `models`
- * inexistante côté `pro-list-models`).
  *
- * Conventions :
- *   - table `modeles` : colonnes `id, professional_id, name, description, price, created_at`
- *     (cf. supabase/migrations/20260513_add_orders_professional_id.sql).
- *   - table `measurements` : créée en prod, colonnes supposées
- *     `id, client_id, name, value, unit, created_at` (+ éventuellement
- *     `professional_id`). À ajuster si le schéma diffère.
+ * Conventions schéma DressArt (cf. DDL prod) :
+ *   - `modeles` : colonnes `nom`, `description`, `prix_base`, `image_url`,
+ *     `professional_id` (FK -> professional_profiles.id), `categorie`.
+ *   - `measurements` : 1 row par auth.users (UNIQUE user_id). 14 colonnes
+ *     dédiées (longueur_pantalon, ceinture, …, ventre) + `extra_fields`
+ *     jsonb pour les mesures personnalisées, + `unit` unique sur la ligne.
+ *   - `clients` : carnet d'adresses du couturier (id, professional_id,
+ *     user_id, name, email, phone, address, city, postal_code, notes,
+ *     status). `user_id` pointe sur auth.users → c'est par lui qu'on
+ *     accède aux measurements.
  */
+
+// =============================================================================
+// Helpers — résolution professional_profiles.id du couturier connecté
+// =============================================================================
+
+async function getMyProfessionalProfileId(): Promise<string> {
+    const {data: {user}} = await supabase.auth.getUser()
+    if (!user) throw new Error('Non authentifié')
+
+    const {data: existing, error: selError} = await supabase
+        .from('professional_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+    if (selError) throw selError
+    if (existing) return existing.id as string
+
+    // Pas encore de profil pro → on crée la row minimale pour que les FK passent.
+    const {data: created, error: insError} = await supabase
+        .from('professional_profiles')
+        .insert({user_id: user.id})
+        .select('id')
+        .single()
+    if (insError) throw insError
+    return created.id as string
+}
+
+// =============================================================================
+// Modèles
+// =============================================================================
 
 export interface ModelRow {
     id: string
@@ -24,25 +55,26 @@ export interface ModelRow {
     created_at: string
 }
 
-export interface MeasurementRow {
-    id: string
-    client_id: string | null
-    client_name?: string | null
-    name: string
-    value: number
-    unit: string
-    created_at: string
-}
-
 interface ListModelsParams {
     search?: string
     limit?: number
+    /** Si true, ne renvoie que les modèles du couturier connecté. */
+    ownOnly?: boolean
 }
 
 export async function listModels(params: ListModelsParams = {}): Promise<{
     models: ModelRow[]
     total: number
 }> {
+    let myProfileId: string | null = null
+    if (params.ownOnly) {
+        try {
+            myProfileId = await getMyProfessionalProfileId()
+        } catch {
+            return {models: [], total: 0}
+        }
+    }
+
     let q = supabase
         .from('modeles')
         .select('*', {count: 'exact'})
@@ -50,23 +82,24 @@ export async function listModels(params: ListModelsParams = {}): Promise<{
         .limit(params.limit ?? 200)
 
     if (params.search?.trim()) {
-        q = q.ilike('name', `%${params.search.trim()}%`)
+        q = q.ilike('nom', `%${params.search.trim()}%`)
+    }
+    if (myProfileId) {
+        q = q.eq('professional_id', myProfileId)
     }
 
     const {data, count, error} = await q
     if (error) throw error
 
-    // La table prod peut nommer la colonne `prix` (FR) au lieu de `price` (EN) ;
-    // on tolère les deux et on convertit en number sûr.
     const models = (data ?? []).map((row: Record<string, unknown>) => {
-        const rawPrice = row.price ?? row.prix
+        const rawPrice = row.prix_base ?? row.price ?? row.prix
         const price = typeof rawPrice === 'number' && !Number.isNaN(rawPrice)
             ? rawPrice
             : Number(rawPrice ?? 0) || 0
         return {
             id: row.id as string,
             professional_id: (row.professional_id as string | null) ?? null,
-            name: (row.name as string) ?? '',
+            name: (row.nom as string) ?? (row.name as string) ?? '',
             description: (row.description as string | null) ?? null,
             price,
             image_url: (row.image_url as string | null) ?? null,
@@ -82,33 +115,36 @@ export async function createModel(input: {
     description?: string
     price: number
     image_url?: string | null
+    category?: string | null
 }): Promise<ModelRow> {
-    const {data: {user}} = await supabase.auth.getUser()
-    if (!user) throw new Error('Non authentifié')
+    const professionalId = await getMyProfessionalProfileId()
 
-    // Table prod nomme la colonne en français (`prix`). On envoie sous ce nom ;
-    // la lecture côté listModels normalise vers `price` pour le reste du code.
     const {data, error} = await supabase
         .from('modeles')
         .insert({
-            name: input.name,
+            nom: input.name,
             description: input.description ?? null,
-            prix: input.price,
+            prix_base: input.price,
             image_url: input.image_url ?? null,
-            professional_id: user.id,
+            categorie: input.category ?? null,
+            professional_id: professionalId,
         })
         .select()
         .single()
 
     if (error) throw error
-    return data as ModelRow
+    const row = data as Record<string, unknown>
+    return {
+        id: row.id as string,
+        professional_id: (row.professional_id as string | null) ?? null,
+        name: (row.nom as string) ?? '',
+        description: (row.description as string | null) ?? null,
+        price: Number(row.prix_base ?? 0),
+        image_url: (row.image_url as string | null) ?? null,
+        created_at: (row.created_at as string) ?? new Date().toISOString(),
+    }
 }
 
-/**
- * Upload une image de modèle dans le bucket public `model-images`.
- * Path : `<user_id>/<model_id-or-timestamp>/<filename>`.
- * Retourne l'URL publique exploitable directement par <img src=...>.
- */
 export async function uploadModelImage(file: File, modelKey?: string): Promise<string> {
     const {data: {user}} = await supabase.auth.getUser()
     if (!user) throw new Error('Non authentifié')
@@ -126,139 +162,113 @@ export async function uploadModelImage(file: File, modelKey?: string): Promise<s
     return data.publicUrl
 }
 
-interface ListMeasurementsParams {
-    search?: string
-    limit?: number
-    /** Restreindre aux mesures d'un client précis (utile pour la fiche client). */
-    clientId?: string
-}
-
-export async function listMeasurements(params: ListMeasurementsParams = {}): Promise<{
-    measurements: MeasurementRow[]
-    total: number
-}> {
-    let q = supabase
-        .from('measurements')
-        .select('*', {count: 'exact'})
-        .order('created_at', {ascending: false})
-        .limit(params.limit ?? 200)
-
-    if (params.search?.trim()) {
-        q = q.ilike('name', `%${params.search.trim()}%`)
-    }
-    if (params.clientId) {
-        q = q.eq('client_id', params.clientId)
-    }
-
-    const {data, count, error} = await q
-    if (error) throw error
-    return {measurements: (data ?? []) as MeasurementRow[], total: count ?? 0}
-}
-
-export async function deleteMeasurement(id: string): Promise<void> {
-    const {error} = await supabase.from('measurements').delete().eq('id', id)
-    if (error) throw error
-}
+// =============================================================================
+// Measurements — 1 row par auth.users, colonnes dédiées
+// =============================================================================
 
 /**
- * Liste standard utilisée comme template par la fiche client. L'ordre est
- * volontaire (du bas du corps vers le haut) pour faciliter la prise de
- * mesures dans cet ordre.
+ * Mapping label affiché → nom de colonne SQL. Ordre = ordre d'affichage
+ * (bas du corps puis haut, conformément à la prise de mesures pratique).
  */
-export const STANDARD_MEASUREMENTS: ReadonlyArray<string> = [
-    'Longueur pantalon',
-    'Ceinture',
-    'Fesse',
-    'Cuisse',
-    'Bas',
-    'Longueur genou',
-    'Tour genou',
-    'Longueur haut',
-    'Dos',
-    'Cou',
-    'Longueur Manche',
-    'Tour de bras',
-    'Poitrine',
-    'Ventre',
+export const STANDARD_MEASUREMENTS: ReadonlyArray<{label: string; column: string}> = [
+    {label: 'Longueur pantalon', column: 'longueur_pantalon'},
+    {label: 'Ceinture', column: 'ceinture'},
+    {label: 'Fesse', column: 'fesse'},
+    {label: 'Cuisse', column: 'cuisse'},
+    {label: 'Bas', column: 'bas'},
+    {label: 'Longueur genou', column: 'longueur_genou'},
+    {label: 'Tour genou', column: 'tour_genou'},
+    {label: 'Longueur haut', column: 'longueur_haut'},
+    {label: 'Dos', column: 'dos'},
+    {label: 'Cou', column: 'cou'},
+    {label: 'Longueur Manche', column: 'longueur_manche'},
+    {label: 'Tour de bras', column: 'tour_de_bras'},
+    {label: 'Poitrine', column: 'poitrine'},
+    {label: 'Ventre', column: 'ventre'},
 ]
 
-interface SaveMeasurementItem {
-    name: string
-    value: number
-    unit: string
+export interface MeasurementRecord {
+    id: string | null
+    user_id: string
+    unit: 'cm' | 'in'
+    /** Valeurs des 14 colonnes standard (colonne SQL -> numéro). null = vide. */
+    values: Record<string, number | null>
+    /** Mesures personnalisées hors template (stockées en jsonb). */
+    extra_fields: Record<string, number>
+    notes: string | null
+    measured_at: string | null
 }
 
-/**
- * Réconcilie la fiche de mesures d'un client : on insère les nouvelles, on
- * met à jour celles dont la valeur a changé, on supprime celles dont la valeur
- * a été vidée. Les mesures personnalisées hors STANDARD restent inchangées si
- * elles ne sont pas dans la liste passée.
- */
-export async function saveClientMeasurements(
-    clientId: string,
-    items: SaveMeasurementItem[],
-): Promise<void> {
-    const {measurements: existing} = await listMeasurements({clientId, limit: 1000})
-    const byName = new Map<string, MeasurementRow>()
-    for (const m of existing) byName.set(m.name, m)
+const STANDARD_COLUMNS = STANDARD_MEASUREMENTS.map(s => s.column)
 
-    for (const item of items) {
-        const existingRow = byName.get(item.name)
-        if (item.value > 0) {
-            if (!existingRow) {
-                await createMeasurement({
-                    client_id: clientId,
-                    name: item.name,
-                    value: item.value,
-                    unit: item.unit,
-                })
-            } else if (existingRow.value !== item.value || existingRow.unit !== item.unit) {
-                const {error} = await supabase
-                    .from('measurements')
-                    .update({value: item.value, unit: item.unit})
-                    .eq('id', existingRow.id)
-                if (error) throw error
-            }
-        } else if (existingRow) {
-            // Valeur vidée → suppression de la ligne existante.
-            await deleteMeasurement(existingRow.id)
-        }
+export async function getMeasurementsByUserId(userId: string): Promise<MeasurementRecord | null> {
+    const {data, error} = await supabase
+        .from('measurements')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle()
+    if (error) throw error
+    if (!data) return null
+
+    const values: Record<string, number | null> = {}
+    for (const col of STANDARD_COLUMNS) {
+        const v = (data as Record<string, unknown>)[col]
+        values[col] = typeof v === 'number' ? v : v == null ? null : Number(v)
+    }
+    const rawExtra = (data as Record<string, unknown>).extra_fields
+    const extra_fields = rawExtra && typeof rawExtra === 'object'
+        ? (rawExtra as Record<string, number>)
+        : {}
+
+    return {
+        id: (data.id as string) ?? null,
+        user_id: data.user_id as string,
+        unit: ((data.unit as 'cm' | 'in') ?? 'cm'),
+        values,
+        extra_fields,
+        notes: (data.notes_text as string | null) ?? null,
+        measured_at: (data.measured_at as string | null) ?? null,
     }
 }
 
-export async function createMeasurement(input: {
-    client_id: string
-    name: string
-    value: number
-    unit: string
-}): Promise<MeasurementRow> {
-    const {data: {user}} = await supabase.auth.getUser()
-    if (!user) throw new Error('Non authentifié')
+export async function upsertMeasurementsByUserId(
+    userId: string,
+    input: {
+        unit: 'cm' | 'in'
+        values: Record<string, number | null>
+        extra_fields: Record<string, number>
+        notes?: string | null
+    },
+): Promise<void> {
+    const payload: Record<string, unknown> = {
+        user_id: userId,
+        unit: input.unit,
+        notes_text: input.notes ?? null,
+        measured_at: new Date().toISOString(),
+        extra_fields: input.extra_fields ?? {},
+    }
+    for (const col of STANDARD_COLUMNS) {
+        payload[col] = input.values[col] ?? null
+    }
 
-    const {data, error} = await supabase
+    const {error} = await supabase
         .from('measurements')
-        .insert({
-            client_id: input.client_id,
-            name: input.name,
-            value: input.value,
-            unit: input.unit,
-            professional_id: user.id,
-        })
-        .select()
-        .single()
+        .upsert(payload, {onConflict: 'user_id'})
 
     if (error) throw error
-    return data as MeasurementRow
 }
 
 // =============================================================================
-// Clients
+// Clients (carnet d'adresses du couturier, indépendant de auth.users)
 // =============================================================================
 
 export type ClientStatus = 'active' | 'inactive' | 'suspended'
 
 export interface ClientRow {
     id: string
+    /** Optionnel : auth.users.id si le client a un compte marketplace.
+     *  C'est par lui qu'on lit les `measurements` (qui sont keyed sur user_id). */
+    user_id: string | null
     name: string
     email: string | null
     phone: string | null
@@ -290,7 +300,6 @@ export async function listClients(params: ListClientsParams = {}): Promise<{
 
     if (params.search?.trim()) {
         const s = params.search.trim()
-        // Recherche multi-colonnes : name, email, phone (PostgREST `or`).
         q = q.or(`name.ilike.%${s}%,email.ilike.%${s}%,phone.ilike.%${s}%`)
     }
 
@@ -307,6 +316,7 @@ export async function createClient(input: {
     city?: string | null
     postal_code?: string | null
     notes?: string | null
+    user_id?: string | null
 }): Promise<ClientRow> {
     const {data: {user}} = await supabase.auth.getUser()
     if (!user) throw new Error('Non authentifié')
@@ -321,8 +331,7 @@ export async function createClient(input: {
             city: input.city ?? null,
             postal_code: input.postal_code ?? null,
             notes: input.notes ?? null,
-            // Le couturier devient propriétaire (champ utilisé par RLS).
-            // L'agent passe par `created_by_agent_id` côté serveur si besoin.
+            user_id: input.user_id ?? null,
             professional_id: user.id,
         })
         .select()
@@ -341,6 +350,7 @@ export async function updateClient(id: string, input: {
     postal_code?: string | null
     notes?: string | null
     status?: ClientStatus
+    user_id?: string | null
 }): Promise<ClientRow> {
     const patch: Record<string, unknown> = {}
     for (const [k, v] of Object.entries(input)) {

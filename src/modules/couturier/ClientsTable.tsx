@@ -4,6 +4,7 @@ import { PencilIcon, EyeIcon, TrashIcon } from '@heroicons/react/24/outline'
 
 interface ClientEntity {
     id: string
+    user_id: string | null
     name: string
     email: string
     phone: string

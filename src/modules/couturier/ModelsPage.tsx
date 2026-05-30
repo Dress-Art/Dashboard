@@ -52,7 +52,7 @@ export function ModelsPage() {
             setLoading(true)
             setError(null)
 
-            const result = await listModels({ search: q.trim() })
+            const result = await listModels({ search: q.trim(), ownOnly: true })
 
             setData({
                 items: result.models.map(m => ({
