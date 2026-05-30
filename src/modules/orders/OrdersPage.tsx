@@ -462,11 +462,26 @@ export function OrdersPage() {
     useEffect(() => { load() }, [load])
 
     const handleStatusChange = async (order: Order, newStatus: OrderStatus) => {
-        console.log('[orders] PATCH status', {orderNumber: order.orderNumber, from: order.status, to: newStatus})
         setUpdatingId(order.orderNumber)
         try {
-            const result = await adminAPI.updateOrderStatus(order.orderNumber, newStatus)
-            console.log('[orders] PATCH success', result)
+            // La marketplace n'accepte que la transition immédiate suivante
+            // (`confirmed` → `paid` → … → `delivered`). Si l'utilisateur clique
+            // une étape future, on enchaîne les transitions intermédiaires.
+            // Annulation reste un appel direct quel que soit le statut courant.
+            if (newStatus === 'cancelled') {
+                await adminAPI.updateOrderStatus(order.orderNumber, 'cancelled')
+            } else {
+                const currentIdx = PRODUCTION_STEPS.indexOf(order.status)
+                const targetIdx = PRODUCTION_STEPS.indexOf(newStatus)
+                if (currentIdx < 0 || targetIdx < 0 || targetIdx <= currentIdx) {
+                    throw new Error(`Transition invalide : ${order.status} → ${newStatus}`)
+                }
+                for (let i = currentIdx + 1; i <= targetIdx; i++) {
+                    const step = PRODUCTION_STEPS[i]
+                    console.log('[orders] PATCH step', {orderNumber: order.orderNumber, to: step})
+                    await adminAPI.updateOrderStatus(order.orderNumber, step)
+                }
+            }
             notify.success(
                 `Commande ${order.orderNumber}`,
                 `→ ${ORDER_STATUS_LABELS_FR[newStatus]}`,

@@ -163,6 +163,7 @@ export function ClientsPage() {
                     address: form.address,
                     city: form.city,
                     postal_code: form.postal_code,
+                    notes: form.notes,
                     status: form.status,
                 })
                 notify.success('Client mis à jour', form.name)
