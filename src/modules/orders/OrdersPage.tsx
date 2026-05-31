@@ -306,13 +306,19 @@ function OrderRowActions({order, updatingId, role, onChange}: OrderRowActionsPro
     const canAdvance = next && allowed?.has(next)
     const canCancel = canCancelOrder(role) && !isTerminal(order.status)
     const busy = updatingId === order.orderNumber
+    // Couturier sur confirmed/paid/measurements_validated : le marketplace gère
+    // ces transitions (FedaPay + admin/agent), pas le couturier. On l'explique.
+    const showCouturierWaiting =
+        role === 'couturier' &&
+        !canAdvance &&
+        !isTerminal(order.status)
 
-    if (!canAdvance && !canCancel) {
+    if (!canAdvance && !canCancel && !showCouturierWaiting) {
         return <span className="text-xs text-gray-400">—</span>
     }
 
     return (
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
             {canAdvance && next && (
                 <button
                     onClick={() => onChange(order, next)}
@@ -322,11 +328,19 @@ function OrderRowActions({order, updatingId, role, onChange}: OrderRowActionsPro
                     {busy ? '...' : NEXT_STATUS_LABEL[order.status]}
                 </button>
             )}
+            {showCouturierWaiting && (
+                <span
+                    className="px-2 py-1 rounded-full text-[10px] font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900"
+                    title="Cette transition est gérée par le paiement (FedaPay) ou la validation mesures (admin/agent)."
+                >
+                    En attente paiement / validation
+                </span>
+            )}
             {canCancel && (
                 <button
                     onClick={() => onChange(order, 'cancelled')}
                     disabled={busy}
-                    className="px-3 py-1 border border-red-300 text-red-600 rounded-lg text-xs font-medium hover:bg-red-50 disabled:opacity-50 transition-colors"
+                    className="px-3 py-1 border border-red-300 text-red-600 rounded-lg text-xs font-medium hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 transition-colors"
                 >
                     Annuler
                 </button>
