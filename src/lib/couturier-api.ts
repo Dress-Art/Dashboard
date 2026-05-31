@@ -145,6 +145,28 @@ export async function createModel(input: {
     }
 }
 
+export async function updateModel(id: string, input: {
+    name?: string
+    description?: string | null
+    price?: number
+    image_url?: string | null
+    category?: string | null
+}): Promise<void> {
+    const patch: Record<string, unknown> = {}
+    if (input.name !== undefined) patch.nom = input.name
+    if (input.description !== undefined) patch.description = input.description
+    if (input.price !== undefined) patch.prix_base = input.price
+    if (input.image_url !== undefined) patch.image_url = input.image_url
+    if (input.category !== undefined) patch.categorie = input.category
+    const {error} = await supabase.from('modeles').update(patch).eq('id', id)
+    if (error) throw error
+}
+
+export async function deleteModel(id: string): Promise<void> {
+    const {error} = await supabase.from('modeles').delete().eq('id', id)
+    if (error) throw error
+}
+
 export async function uploadModelImage(file: File, modelKey?: string): Promise<string> {
     const {data: {user}} = await supabase.auth.getUser()
     if (!user) throw new Error('Non authentifié')

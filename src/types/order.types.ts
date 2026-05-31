@@ -75,12 +75,11 @@ export const ALLOWED_TRANSITIONS_BY_ROLE: Record<string, ReadonlySet<OrderStatus
         'delivered',
         'cancelled',
     ]),
-    // Couturier = pilote du cycle production. Peut tout faire avancer SAUF
-    // marquer livré (rôle du livreur). 'paid' inclus pour les paiements
-    // directs cash/mobile money hors FedaPay.
+    // Couturier = pilote production uniquement. Le marketplace gère
+    // confirmed → paid (FedaPay) et paid → measurements_validated (agent/
+    // admin), c'est pourquoi le couturier ne peut PAS appliquer ces deux
+    // statuts (le backend marketplace les rejette en 400 pour ce rôle).
     couturier: new Set<OrderStatus>([
-        'paid',
-        'measurements_validated',
         'sewing',
         'finishing',
         'ready_for_delivery',

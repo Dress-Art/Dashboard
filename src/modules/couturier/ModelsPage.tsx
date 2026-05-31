@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { PlusIcon, ArrowDownTrayIcon, PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline'
-import { listModels, createModel, uploadModelImage } from '@/lib/couturier-api'
+import { listModels, createModel, updateModel, deleteModel, uploadModelImage } from '@/lib/couturier-api'
+import { notify } from '@/lib/toast'
 import { ModelsTable } from './ModelsTable'
 
 interface ModelEntity {
@@ -33,6 +34,12 @@ export function ModelsPage() {
     })
     const [newImageFile, setNewImageFile] = useState<File | null>(null)
     const [newImagePreview, setNewImagePreview] = useState<string | null>(null)
+
+    const [editingModel, setEditingModel] = useState<ModelEntity | null>(null)
+    const [editForm, setEditForm] = useState({name: '', description: '', price: 0})
+    const [editImageFile, setEditImageFile] = useState<File | null>(null)
+    const [editImagePreview, setEditImagePreview] = useState<string | null>(null)
+    const [deletingModel, setDeletingModel] = useState<ModelEntity | null>(null)
 
     const translateError = (err: any): string => {
         if (err?.message?.includes('Failed to fetch') || err?.message?.includes('fetch')) {
@@ -133,6 +140,68 @@ export function ModelsPage() {
         setNewImagePreview(null)
     }
 
+    const openEdit = (m: ModelEntity) => {
+        setEditingModel(m)
+        setEditForm({name: m.name, description: m.description, price: m.price})
+        setEditImageFile(null)
+        setEditImagePreview(m.image_url ?? null)
+    }
+
+    const handleEditImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] ?? null
+        if (!file) return
+        setEditImageFile(file)
+        const reader = new FileReader()
+        reader.onloadend = () => setEditImagePreview(typeof reader.result === 'string' ? reader.result : null)
+        reader.readAsDataURL(file)
+    }
+
+    const handleSaveEdit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!editingModel) return
+        if (!editForm.name || editForm.price <= 0) {
+            notify.error('Nom et prix > 0 requis')
+            return
+        }
+        try {
+            setActionLoading(`edit-${editingModel.id}`)
+            let image_url: string | undefined
+            if (editImageFile) {
+                image_url = await uploadModelImage(editImageFile, editingModel.id)
+            }
+            await updateModel(editingModel.id, {
+                name: editForm.name,
+                description: editForm.description || null,
+                price: editForm.price,
+                ...(image_url ? {image_url} : {}),
+            })
+            notify.success('Modèle mis à jour')
+            setEditingModel(null)
+            setEditImageFile(null)
+            setEditImagePreview(null)
+            await loadModels()
+        } catch (err) {
+            notify.error(err)
+        } finally {
+            setActionLoading(null)
+        }
+    }
+
+    const handleConfirmDelete = async () => {
+        if (!deletingModel) return
+        try {
+            setActionLoading(`delete-${deletingModel.id}`)
+            await deleteModel(deletingModel.id)
+            notify.success('Modèle supprimé', deletingModel.name)
+            setDeletingModel(null)
+            await loadModels()
+        } catch (err) {
+            notify.error(err)
+        } finally {
+            setActionLoading(null)
+        }
+    }
+
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault()
         loadModels()
@@ -207,10 +276,15 @@ export function ModelsPage() {
                     </form>
 
                     {/* Tableau */}
-                    <ModelsTable 
+                    <ModelsTable
                         models={data?.items || []}
                         loading={loading}
                         actionLoading={actionLoading}
+                        onEdit={openEdit}
+                        onDelete={(modelId) => {
+                            const m = (data?.items ?? []).find(it => it.id === modelId)
+                            if (m) setDeletingModel(m)
+                        }}
                     />
                 </div>
             </div>
@@ -294,6 +368,103 @@ export function ModelsPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modale édition */}
+            {editingModel && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setEditingModel(null)}>
+                    <div className="bg-black rounded-lg p-6 w-full max-w-md border border-gray-800 shadow-xl" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-lg font-semibold mb-4 text-white">Modifier le modèle</h3>
+                        <form onSubmit={handleSaveEdit} className="space-y-4">
+                            <input
+                                type="text"
+                                placeholder="Nom du modèle *"
+                                value={editForm.name}
+                                onChange={e => setEditForm(prev => ({...prev, name: e.target.value}))}
+                                className="w-full px-4 py-2 border border-gray-700 rounded-lg bg-transparent text-white"
+                                required
+                            />
+                            <textarea
+                                placeholder="Description"
+                                value={editForm.description}
+                                onChange={e => setEditForm(prev => ({...prev, description: e.target.value}))}
+                                className="w-full px-4 py-2 border border-gray-700 rounded-lg bg-transparent text-white"
+                            />
+                            <input
+                                type="number"
+                                placeholder="Prix (FCFA) *"
+                                value={editForm.price || ''}
+                                onChange={e => setEditForm(prev => ({...prev, price: parseFloat(e.target.value) || 0}))}
+                                className="w-full px-4 py-2 border border-gray-700 rounded-lg bg-transparent text-white"
+                                required
+                            />
+                            <div>
+                                <label className="block text-xs font-medium text-white/70 mb-2">Photo</label>
+                                {editImagePreview ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                        src={editImagePreview}
+                                        alt="Aperçu"
+                                        className="w-full h-48 object-cover rounded-lg border border-gray-700"
+                                    />
+                                ) : (
+                                    <div className="w-full h-48 rounded-lg border border-dashed border-gray-700 flex items-center justify-center">
+                                        <PhotoIcon className="w-8 h-8 text-gray-500" />
+                                    </div>
+                                )}
+                                <label className="mt-2 inline-flex items-center gap-1 cursor-pointer text-xs text-white/70 hover:text-white">
+                                    <PhotoIcon className="w-3.5 h-3.5" />
+                                    Changer la photo
+                                    <input type="file" accept="image/*" onChange={handleEditImageChange} className="hidden" />
+                                </label>
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingModel(null)}
+                                    className="flex-1 px-4 py-2 bg-black text-white border border-gray-700 rounded-lg hover:bg-gray-900 font-medium"
+                                >
+                                    Annuler
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={actionLoading === `edit-${editingModel.id}`}
+                                    className="flex-1 px-4 py-2 bg-white text-black rounded-lg hover:bg-gray-200 disabled:opacity-50 font-medium"
+                                >
+                                    {actionLoading === `edit-${editingModel.id}` ? 'Sauvegarde...' : 'Sauvegarder'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Confirmation suppression */}
+            {deletingModel && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setDeletingModel(null)}>
+                    <div className="bg-black rounded-lg p-6 w-full max-w-sm border border-gray-800 shadow-xl" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-lg font-semibold mb-2 text-white">Supprimer ce modèle ?</h3>
+                        <p className="text-sm text-gray-400 mb-6">
+                            <strong className="text-white">{deletingModel.name}</strong> sera définitivement supprimé.
+                            Cette action est irréversible.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setDeletingModel(null)}
+                                className="flex-1 px-4 py-2 bg-black text-white border border-gray-700 rounded-lg hover:bg-gray-900 font-medium"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={() => void handleConfirmDelete()}
+                                disabled={actionLoading === `delete-${deletingModel.id}`}
+                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 font-medium"
+                            >
+                                {actionLoading === `delete-${deletingModel.id}` ? 'Suppression...' : 'Supprimer'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
