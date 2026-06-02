@@ -306,19 +306,22 @@ function OrderRowActions({order, updatingId, role, onChange}: OrderRowActionsPro
     const canAdvance = next && allowed?.has(next)
     const canCancel = canCancelOrder(role) && !isTerminal(order.status)
     const busy = updatingId === order.orderNumber
-    // Couturier sur confirmed/paid/measurements_validated : le marketplace gère
-    // ces transitions (FedaPay + admin/agent), pas le couturier. On l'explique.
-    const showCouturierWaiting =
-        role === 'couturier' &&
-        !canAdvance &&
-        !isTerminal(order.status)
 
-    if (!canAdvance && !canCancel && !showCouturierWaiting) {
+    if (!canAdvance && !canCancel) {
+        // Pour un couturier sur une commande encore en confirmed/paid/measurements_validated,
+        // on dit explicitement pourquoi aucun bouton n'apparaît plutôt qu'un tiret muet.
+        if (role === 'couturier' && !isTerminal(order.status)) {
+            return (
+                <span className="text-[10px] text-amber-700 dark:text-amber-400 italic">
+                    En attente paiement / validation
+                </span>
+            )
+        }
         return <span className="text-xs text-gray-400">—</span>
     }
 
     return (
-        <div className="flex gap-2 flex-wrap items-center">
+        <div className="flex gap-2 flex-wrap">
             {canAdvance && next && (
                 <button
                     onClick={() => onChange(order, next)}
@@ -327,14 +330,6 @@ function OrderRowActions({order, updatingId, role, onChange}: OrderRowActionsPro
                 >
                     {busy ? '...' : NEXT_STATUS_LABEL[order.status]}
                 </button>
-            )}
-            {showCouturierWaiting && (
-                <span
-                    className="px-2 py-1 rounded-full text-[10px] font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900"
-                    title="Cette transition est gérée par le paiement (FedaPay) ou la validation mesures (admin/agent)."
-                >
-                    En attente paiement / validation
-                </span>
             )}
             {canCancel && (
                 <button
@@ -1024,7 +1019,7 @@ export function OrdersPage() {
                                         <div className="space-y-3">
                                             {showWaitingBanner && (
                                                 <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50/70 dark:bg-amber-950/30 p-3 text-xs text-amber-800 dark:text-amber-300">
-                                                    En attente : le statut <strong>{ORDER_STATUS_LABELS_FR[selectedOrder.status]}</strong> sera fait avancer par le paiement (FedaPay) ou l&apos;équipe DressArt (validation mesures). Vous pourrez démarrer la couture dès que les mesures auront été validées.
+                                                    En attente du livreur : le statut <strong>{ORDER_STATUS_LABELS_FR[selectedOrder.status]}</strong> passera à <strong>Livré</strong> une fois la livraison effectuée.
                                                 </div>
                                             )}
                                             {futureStatuses.length > 0 && (

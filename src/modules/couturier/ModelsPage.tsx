@@ -215,17 +215,17 @@ export function ModelsPage() {
 
     if (loading && !data) {
         return (
-            <div className="p-6">
+            <div className="p-6 bg-gray-50 dark:bg-black min-h-screen">
                 <div className="animate-pulse space-y-4">
-                    <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                    <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                    <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded"></div>
+                    <div className="h-16 bg-gray-200 dark:bg-gray-800 rounded"></div>
                 </div>
             </div>
         )
     }
 
     return (
-        <div className="space-y-6">
+        <div className="p-6 bg-gray-50 dark:bg-black min-h-screen space-y-6">
             {/* Header */}
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-black dark:text-white">Liste des Modèles</h2>
@@ -517,6 +517,77 @@ export function ModelsPage() {
                                     openEdit(m)
                                 }}
                                 className="flex-1 px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 font-medium"
+                            >
+                                Modifier
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modale aperçu */}
+            {viewingModel && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setViewingModel(null)}>
+                    <div className="bg-white dark:bg-neutral-950 rounded-2xl p-6 w-full max-w-lg border border-gray-200 dark:border-gray-800 shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-start mb-4">
+                            <h3 className="text-xl font-bold text-black dark:text-white">{viewingModel.name}</h3>
+                            <button
+                                onClick={() => setViewingModel(null)}
+                                className="text-gray-400 hover:text-gray-900 dark:hover:text-white text-xl"
+                                aria-label="Fermer"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {viewingModel.image_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                                src={viewingModel.image_url}
+                                alt={viewingModel.name}
+                                className="w-full max-h-[60vh] object-contain rounded-xl border border-gray-200 dark:border-gray-800 mb-4 bg-gray-50 dark:bg-gray-900"
+                            />
+                        ) : (
+                            <div className="w-full h-64 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 mb-4 flex items-center justify-center">
+                                <PhotoIcon className="w-10 h-10 text-gray-400" />
+                            </div>
+                        )}
+
+                        <div className="space-y-2 text-sm">
+                            <div className="flex items-center justify-between">
+                                <span className="text-gray-500 dark:text-gray-400">Prix</span>
+                                <span className="font-semibold text-black dark:text-white tabular-nums">
+                                    {formatCurrency(viewingModel.price)}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-gray-500 dark:text-gray-400">Créé le</span>
+                                <span className="text-black dark:text-white">
+                                    {new Date(viewingModel.created_at).toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'})}
+                                </span>
+                            </div>
+                            {viewingModel.description && (
+                                <div className="pt-2">
+                                    <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Description</p>
+                                    <p className="text-black dark:text-white whitespace-pre-line">{viewingModel.description}</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex gap-3 mt-6">
+                            <button
+                                onClick={() => setViewingModel(null)}
+                                className="flex-1 py-2.5 border border-gray-300 dark:border-gray-700 text-black dark:text-white rounded-xl font-semibold text-sm hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+                            >
+                                Fermer
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const m = viewingModel
+                                    setViewingModel(null)
+                                    openEdit(m)
+                                }}
+                                className="flex-1 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl font-semibold text-sm hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
                             >
                                 Modifier
                             </button>

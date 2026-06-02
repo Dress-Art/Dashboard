@@ -92,21 +92,24 @@ export function ModelsTable({
                                 <div className="flex justify-end gap-2">
                                     <button
                                         onClick={() => onView?.(model)}
-                                        className="p-2 text-gray-400 hover:text-white bg-transparent rounded-lg"
-                                        title="Consulter"
+                                        disabled={!onView}
+                                        className="p-2 text-gray-500 hover:text-black dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg disabled:opacity-30 transition-colors"
+                                        title="Voir"
                                     >
                                         <EyeIcon className="w-4 h-4" />
                                     </button>
                                     <button
                                         onClick={() => onEdit?.(model)}
-                                        className="p-2 text-gray-400 hover:text-white bg-transparent rounded-lg"
+                                        disabled={!onEdit}
+                                        className="p-2 text-gray-500 hover:text-black dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg disabled:opacity-30 transition-colors"
                                         title="Modifier"
                                     >
                                         <PencilIcon className="w-4 h-4" />
                                     </button>
                                     <button
                                         onClick={() => onDelete?.(model.id)}
-                                        className="p-2 text-gray-400 hover:text-red-500 bg-transparent rounded-lg"
+                                        disabled={!onDelete}
+                                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg disabled:opacity-30 transition-colors"
                                         title="Supprimer"
                                     >
                                         <TrashIcon className="w-4 h-4" />
