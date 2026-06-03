@@ -725,7 +725,6 @@ function ClientDeleteModal({client, submitting, onClose, onConfirm}: ClientDelet
                 <h3 className="text-lg font-semibold mb-2 text-black dark:text-white">Supprimer ce client ?</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
                     Cette action est irréversible. Le client <strong className="text-black dark:text-white">{client.name}</strong> sera définitivement supprimé.
-                    Les commandes liées conserveront leur snapshot (`customer_name`, `customer_phone`).
                 </p>
                 <div className="flex gap-3">
                     <button

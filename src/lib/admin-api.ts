@@ -214,8 +214,20 @@ export class AdminAPI {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status }),
         })
-        if (!res.ok) throw new Error(`Erreur mise à jour statut: ${res.status}`)
-        return res.json()
+        const text = await res.text()
+        let body: unknown
+        try { body = text ? JSON.parse(text) : null } catch { body = text }
+        if (!res.ok) {
+            // Surface le vrai message marketplace (le proxy le passe through).
+            const b = body as {error?: string; message?: string; details?: unknown} | null
+            const detail =
+                (b && (b.error || b.message)) ||
+                (typeof body === 'string' ? body : '') ||
+                `HTTP ${res.status}`
+            console.error('[updateOrderStatus] upstream error', {orderNumber, status, http: res.status, body})
+            throw new Error(`Statut refusé (${res.status}) : ${detail}`)
+        }
+        return body
     }
 
     /**
