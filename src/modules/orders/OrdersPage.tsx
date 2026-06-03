@@ -308,15 +308,6 @@ function OrderRowActions({order, updatingId, role, onChange}: OrderRowActionsPro
     const busy = updatingId === order.orderNumber
 
     if (!canAdvance && !canCancel) {
-        // Pour un couturier sur une commande encore en confirmed/paid/measurements_validated,
-        // on dit explicitement pourquoi aucun bouton n'apparaît plutôt qu'un tiret muet.
-        if (role === 'couturier' && !isTerminal(order.status)) {
-            return (
-                <span className="text-[10px] text-amber-700 dark:text-amber-400 italic">
-                    En attente paiement / validation
-                </span>
-            )
-        }
         return <span className="text-xs text-gray-400">—</span>
     }
 
@@ -478,10 +469,7 @@ export function OrdersPage() {
             } else {
                 // La marketplace n'accepte que la transition immédiate suivante
                 // (`confirmed` → `paid` → … → `delivered`). Si l'utilisateur saute
-                // plusieurs étapes, on enchaîne les intermédiaires — mais on
-                // refuse d'enchaîner les statuts hors de ses prérogatives
-                // (sinon 400 marketplace garanti).
-                const allowed = role ? ALLOWED_TRANSITIONS_BY_ROLE[role] : undefined
+                // plusieurs étapes, on enchaîne les intermédiaires.
                 const currentIdx = PRODUCTION_STEPS.indexOf(order.status)
                 const targetIdx = PRODUCTION_STEPS.indexOf(newStatus)
                 if (currentIdx < 0 || targetIdx < 0 || targetIdx <= currentIdx) {
@@ -489,11 +477,6 @@ export function OrdersPage() {
                 }
                 for (let i = currentIdx + 1; i <= targetIdx; i++) {
                     const step = PRODUCTION_STEPS[i]
-                    if (allowed && !allowed.has(step)) {
-                        throw new Error(
-                            `Transition ${ORDER_STATUS_LABELS_FR[step]} non autorisée pour votre rôle. Cette étape sera gérée par l'admin ou le paiement.`,
-                        )
-                    }
                     console.log('[orders] PATCH step', {orderNumber: order.orderNumber, to: step})
                     await adminAPI.updateOrderStatus(order.orderNumber, step)
                 }
@@ -996,32 +979,16 @@ export function OrdersPage() {
                                 {(() => {
                                     const allowed = role ? ALLOWED_TRANSITIONS_BY_ROLE[role] : undefined
                                     const next = NEXT_STATUS[selectedOrder.status]
+                                    // Étapes futures que ce rôle peut appliquer : tout ce qui est
+                                    // strictement après le statut courant ET dans son allowlist.
                                     const currentIdx = PRODUCTION_STEPS.indexOf(selectedOrder.status)
-                                    // On garde uniquement les étapes futures qui sont :
-                                    //  - dans la allowlist du rôle, ET
-                                    //  - atteignables sans passer par une étape interdite (sinon
-                                    //    la chaîne automatique côté handleStatusChange refusera).
-                                    const futureStatuses: OrderStatus[] = []
-                                    if (currentIdx >= 0 && allowed) {
-                                        for (let i = currentIdx + 1; i < PRODUCTION_STEPS.length; i++) {
-                                            const step = PRODUCTION_STEPS[i]
-                                            if (!allowed.has(step)) break
-                                            futureStatuses.push(step)
-                                        }
-                                    }
+                                    const futureStatuses = currentIdx >= 0
+                                        ? PRODUCTION_STEPS.slice(currentIdx + 1).filter(s => allowed?.has(s))
+                                        : []
                                     const canCancel = canCancelOrder(role) && !isTerminal(selectedOrder.status)
-                                    const showWaitingBanner =
-                                        role === 'couturier' &&
-                                        futureStatuses.length === 0 &&
-                                        !isTerminal(selectedOrder.status)
-                                    if (futureStatuses.length === 0 && !canCancel && !showWaitingBanner) return null
+                                    if (futureStatuses.length === 0 && !canCancel) return null
                                     return (
                                         <div className="space-y-3">
-                                            {showWaitingBanner && (
-                                                <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50/70 dark:bg-amber-950/30 p-3 text-xs text-amber-800 dark:text-amber-300">
-                                                    En attente du livreur : le statut <strong>{ORDER_STATUS_LABELS_FR[selectedOrder.status]}</strong> passera à <strong>Livré</strong> une fois la livraison effectuée.
-                                                </div>
-                                            )}
                                             {futureStatuses.length > 0 && (
                                                 <div>
                                                     <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
